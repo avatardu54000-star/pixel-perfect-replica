@@ -2,8 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/app/AppShell";
 import { useState } from "react";
 import { Send, Loader2 } from "lucide-react";
-import { useServerFn } from "@tanstack/react-start";
-import { coachChat } from "@/lib/coach.functions";
 
 export const Route = createFileRoute("/_layout/coach")({
   component: CoachPage,
@@ -21,6 +19,21 @@ const QUESTIONS = [
   "Des contraintes budget particulières ?",
 ];
 
+const ACKS = [
+  "Ok, je note 📝",
+  "Merci pour le partage 🙏",
+  "Compris, ça m'aide beaucoup.",
+  "Très clair, on va en tenir compte.",
+  "Top, je garde ça en tête.",
+  "Reçu 5 sur 5 💪",
+  "Parfait, ça oriente bien la semaine.",
+  "Noté, je vais ajuster en conséquence.",
+  "Merci, c'est précieux comme retour.",
+];
+
+const FINAL =
+  "Merci pour ce check-in complet 🙏 Voici ce que je retiens : on garde un cap équilibré, on adapte les portions à ton énergie et on respecte ton budget. Je te prépare un planning sur mesure — file dans l'onglet Semaines pour le voir ✨";
+
 interface Msg { role: "coach" | "user"; text: string; }
 
 function CoachPage() {
@@ -28,30 +41,31 @@ function CoachPage() {
     { role: "coach", text: "Salut ! C'est l'heure du check-in hebdo 💪 Prêt·e à faire le point ensemble ?" },
     { role: "coach", text: QUESTIONS[0] },
   ]);
+  const [step, setStep] = useState(0);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const chat = useServerFn(coachChat);
 
   const send = async () => {
     const text = input.trim();
     if (!text || loading) return;
-    const next: Msg[] = [...msgs, { role: "user", text }];
-    setMsgs(next);
+    setMsgs((prev) => [...prev, { role: "user", text }]);
     setInput("");
     setLoading(true);
-    try {
-      const history = next.map((m) => ({
-        role: m.role === "user" ? ("user" as const) : ("assistant" as const),
-        content: m.text,
-      }));
-      const { content } = await chat({ data: { messages: history } });
-      setMsgs((prev) => [...prev, { role: "coach", text: content || "…" }]);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Erreur inconnue";
-      setMsgs((prev) => [...prev, { role: "coach", text: `⚠️ ${msg}` }]);
-    } finally {
-      setLoading(false);
+    const nextStep = step + 1;
+    // Simulation : délai réaliste 700-1400ms
+    await new Promise((r) => setTimeout(r, 700 + Math.random() * 700));
+    const ack = ACKS[Math.floor(Math.random() * ACKS.length)];
+    const replies: Msg[] = [{ role: "coach", text: ack }];
+    if (nextStep < QUESTIONS.length) {
+      await new Promise((r) => setTimeout(r, 400));
+      replies.push({ role: "coach", text: QUESTIONS[nextStep] });
+    } else {
+      await new Promise((r) => setTimeout(r, 500));
+      replies.push({ role: "coach", text: FINAL });
     }
+    setMsgs((prev) => [...prev, ...replies]);
+    setStep(nextStep);
+    setLoading(false);
   };
 
   return (
