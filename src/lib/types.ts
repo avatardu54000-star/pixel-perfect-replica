@@ -1,0 +1,90 @@
+export type CategorieAliment =
+  | "viande" | "poisson" | "laitier" | "feculents"
+  | "legumes" | "fruits" | "epicerie" | "custom";
+
+export type TypeRepas = "petit_dejeuner" | "dejeuner" | "diner" | "dessert" | "collation";
+
+export interface MacrosBase {
+  kcal: number;
+  proteines: number;
+  glucides: number;
+  lipides: number;
+  fibres?: number;
+}
+
+export interface Aliment {
+  id: string;
+  nom: string;
+  marque?: string;
+  categorie: CategorieAliment;
+  pour_100g: MacrosBase;
+  prix_kg_estime: number;
+  custom?: boolean;
+}
+
+export interface IngredientRecette {
+  aliment_id: string;
+  quantite_g_par_portion: number;
+}
+
+export interface Recette {
+  id: string;
+  nom: string;
+  description: string;
+  emoji: string;
+  cuisine: "italienne" | "asiatique" | "française" | "méditerranéenne" | "brésilienne" | "autre";
+  type_repas: TypeRepas;
+  batch_cooking: boolean;
+  temps_total_minutes: number;
+  nb_portions_base: number;
+  ingredients: IngredientRecette[];
+  etapes: string[];
+  pourquoi: string;
+  conservation_jours: number;
+  tags: string[];
+}
+
+export interface RepasPlanifie {
+  type: TypeRepas;
+  recette_id: string;
+  portions: number;
+}
+
+export interface JourPlanifie {
+  date: string; // ISO
+  repas: RepasPlanifie[];
+}
+
+export interface Semaine {
+  id: string;
+  numero: number;
+  date_debut: string;
+  jours: JourPlanifie[];
+  note_check_in?: string;
+}
+
+export interface Profil {
+  nom: string;
+  sexe: "homme" | "femme";
+  age: number;
+  taille_cm: number;
+  poids_kg: number;
+  poids_initial_kg: number;
+  masse_musculaire_kg?: number;
+  masse_grasse_kg?: number;
+  taux_graisse_pct?: number;
+  tour_taille_cm?: number;
+  activite: "sedentaire" | "leger" | "moderement_actif" | "tres_actif" | "athlete";
+  objectif: "seche_musculaire" | "maintien" | "prise_masse";
+  objectif_calories_jour: number;
+  objectif_proteines_g: number;
+}
+
+export interface Preferences {
+  bannis_temporaire: string[];
+  bannis_definitif: string[];
+  cuisines_preferees: string[];
+  budget_mensuel: number;
+}
+
+export interface PoidsEntry { date: string; poids: number; }
