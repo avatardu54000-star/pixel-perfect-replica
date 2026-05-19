@@ -10,32 +10,82 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LayoutRouteImport } from './routes/_layout'
+import { Route as LayoutIndexRouteImport } from './routes/_layout.index'
+import { Route as LayoutSemainesRouteImport } from './routes/_layout.semaines'
+import { Route as LayoutProfilRouteImport } from './routes/_layout.profil'
+import { Route as LayoutCoursesRouteImport } from './routes/_layout.courses'
+import { Route as LayoutCoachRouteImport } from './routes/_layout.coach'
 
 const LayoutRoute = LayoutRouteImport.update({
   id: '/_layout',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LayoutIndexRoute = LayoutIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutSemainesRoute = LayoutSemainesRouteImport.update({
+  id: '/semaines',
+  path: '/semaines',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutProfilRoute = LayoutProfilRouteImport.update({
+  id: '/profil',
+  path: '/profil',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutCoursesRoute = LayoutCoursesRouteImport.update({
+  id: '/courses',
+  path: '/courses',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutCoachRoute = LayoutCoachRouteImport.update({
+  id: '/coach',
+  path: '/coach',
+  getParentRoute: () => LayoutRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof LayoutRoute
+  '/': typeof LayoutIndexRoute
+  '/coach': typeof LayoutCoachRoute
+  '/courses': typeof LayoutCoursesRoute
+  '/profil': typeof LayoutProfilRoute
+  '/semaines': typeof LayoutSemainesRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof LayoutRoute
+  '/coach': typeof LayoutCoachRoute
+  '/courses': typeof LayoutCoursesRoute
+  '/profil': typeof LayoutProfilRoute
+  '/semaines': typeof LayoutSemainesRoute
+  '/': typeof LayoutIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/_layout': typeof LayoutRoute
+  '/_layout': typeof LayoutRouteWithChildren
+  '/_layout/coach': typeof LayoutCoachRoute
+  '/_layout/courses': typeof LayoutCoursesRoute
+  '/_layout/profil': typeof LayoutProfilRoute
+  '/_layout/semaines': typeof LayoutSemainesRoute
+  '/_layout/': typeof LayoutIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/coach' | '/courses' | '/profil' | '/semaines'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/_layout'
+  to: '/coach' | '/courses' | '/profil' | '/semaines' | '/'
+  id:
+    | '__root__'
+    | '/_layout'
+    | '/_layout/coach'
+    | '/_layout/courses'
+    | '/_layout/profil'
+    | '/_layout/semaines'
+    | '/_layout/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  LayoutRoute: typeof LayoutRoute
+  LayoutRoute: typeof LayoutRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -47,11 +97,65 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_layout/': {
+      id: '/_layout/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof LayoutIndexRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/semaines': {
+      id: '/_layout/semaines'
+      path: '/semaines'
+      fullPath: '/semaines'
+      preLoaderRoute: typeof LayoutSemainesRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/profil': {
+      id: '/_layout/profil'
+      path: '/profil'
+      fullPath: '/profil'
+      preLoaderRoute: typeof LayoutProfilRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/courses': {
+      id: '/_layout/courses'
+      path: '/courses'
+      fullPath: '/courses'
+      preLoaderRoute: typeof LayoutCoursesRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/coach': {
+      id: '/_layout/coach'
+      path: '/coach'
+      fullPath: '/coach'
+      preLoaderRoute: typeof LayoutCoachRouteImport
+      parentRoute: typeof LayoutRoute
+    }
   }
 }
 
+interface LayoutRouteChildren {
+  LayoutCoachRoute: typeof LayoutCoachRoute
+  LayoutCoursesRoute: typeof LayoutCoursesRoute
+  LayoutProfilRoute: typeof LayoutProfilRoute
+  LayoutSemainesRoute: typeof LayoutSemainesRoute
+  LayoutIndexRoute: typeof LayoutIndexRoute
+}
+
+const LayoutRouteChildren: LayoutRouteChildren = {
+  LayoutCoachRoute: LayoutCoachRoute,
+  LayoutCoursesRoute: LayoutCoursesRoute,
+  LayoutProfilRoute: LayoutProfilRoute,
+  LayoutSemainesRoute: LayoutSemainesRoute,
+  LayoutIndexRoute: LayoutIndexRoute,
+}
+
+const LayoutRouteWithChildren =
+  LayoutRoute._addFileChildren(LayoutRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  LayoutRoute: LayoutRoute,
+  LayoutRoute: LayoutRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
