@@ -6,6 +6,7 @@ import { RECETTES, RECETTES_MAP } from "@/data/recettes";
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
 import type { RepasPlanifie } from "@/lib/types";
+import { RepasDetailSheet } from "@/components/app/RepasDetailSheet";
 
 export const Route = createFileRoute("/_layout/semaines")({
   component: SemainesPage,
@@ -21,6 +22,7 @@ function SemainesPage() {
   const semaine = semaines.find((s) => s.id === activeId) ?? semaines[0];
 
   const [editing, setEditing] = useState<{ jourIdx: number; type: RepasPlanifie["type"] } | null>(null);
+  const [detail, setDetail] = useState<{ jourIdx: number; repas: RepasPlanifie } | null>(null);
 
   return (
     <AppShell title="Semaines" subtitle={`Budget estimé · ${prixSemaine(semaine)} €`}>
@@ -61,7 +63,7 @@ function SemainesPage() {
                   return (
                     <button
                       key={r.type}
-                      onClick={() => setEditing({ jourIdx, type: r.type })}
+                      onClick={() => setDetail({ jourIdx, repas: r })}
                       className="rounded-xl bg-muted p-2.5 text-left transition hover:bg-muted/70"
                     >
                       <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{REPAS_LABELS[r.type]}</p>
@@ -74,6 +76,17 @@ function SemainesPage() {
           );
         })}
       </div>
+
+      {detail && (
+        <RepasDetailSheet
+          repas={detail.repas}
+          onClose={() => setDetail(null)}
+          onReplace={() => {
+            setEditing({ jourIdx: detail.jourIdx, type: detail.repas.type });
+            setDetail(null);
+          }}
+        />
+      )}
 
       {editing && (
         <div className="fixed inset-0 z-50 flex items-end bg-black/40" onClick={() => setEditing(null)}>
