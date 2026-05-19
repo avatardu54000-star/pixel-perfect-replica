@@ -6,6 +6,9 @@ import { JOURS_LABELS, macrosJour, REPAS_LABELS } from "@/lib/nutrition";
 import { RECETTES_MAP } from "@/data/recettes";
 import { FICHES } from "@/data/education";
 import { Sparkles, TrendingUp } from "lucide-react";
+import { useState } from "react";
+import { RepasDetailSheet } from "@/components/app/RepasDetailSheet";
+import type { RepasPlanifie } from "@/lib/types";
 
 export const Route = createFileRoute("/_layout/")({
   component: Dashboard,
@@ -28,6 +31,7 @@ function Dashboard() {
   const propProteines = profil.objectif_proteines_g;
   const propLipides = Math.round((profil.objectif_calories_jour * 0.25) / 9);
   const propGlucides = Math.round((profil.objectif_calories_jour - propProteines * 4 - propLipides * 9) / 4);
+  const [detail, setDetail] = useState<RepasPlanifie | null>(null);
 
   return (
     <AppShell>
@@ -60,14 +64,18 @@ function Dashboard() {
           {jourAuj.repas.map((r) => {
             const recette = RECETTES_MAP[r.recette_id];
             return (
-              <div key={r.type} className="flex items-center gap-3 rounded-2xl bg-card p-4 shadow-[var(--shadow-soft)]">
+              <button
+                key={r.type}
+                onClick={() => setDetail(r)}
+                className="flex w-full items-center gap-3 rounded-2xl bg-card p-4 text-left shadow-[var(--shadow-soft)] transition hover:bg-muted/40"
+              >
                 <div className="grid size-12 place-items-center rounded-xl bg-muted text-2xl">{recette?.emoji}</div>
                 <div className="min-w-0 flex-1">
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">{REPAS_LABELS[r.type]}</p>
                   <p className="truncate font-semibold">{recette?.nom}</p>
                   <p className="text-xs text-muted-foreground">{recette?.temps_total_minutes} min · {recette?.cuisine}</p>
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
@@ -86,6 +94,8 @@ function Dashboard() {
         <p className="mt-3 rounded-lg bg-white/10 px-3 py-2 text-xs">📊 {fiche.fait_chiffre}</p>
         <p className="mt-2 text-[10px] opacity-70">Source · {fiche.source}</p>
       </section>
+
+      {detail && <RepasDetailSheet repas={detail} onClose={() => setDetail(null)} />}
     </AppShell>
   );
 }
