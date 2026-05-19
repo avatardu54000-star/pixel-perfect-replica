@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/app/AppShell";
 import { useState } from "react";
-import { Send } from "lucide-react";
+import { Send, Loader2 } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { coachChat } from "@/lib/coach.functions";
 
 export const Route = createFileRoute("/_layout/coach")({
   component: CoachPage,
@@ -26,21 +28,30 @@ function CoachPage() {
     { role: "coach", text: "Salut ! C'est l'heure du check-in hebdo 💪 Prêt·e à faire le point ensemble ?" },
     { role: "coach", text: QUESTIONS[0] },
   ]);
-  const [step, setStep] = useState(0);
   const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const chat = useServerFn(coachChat);
 
-  const send = () => {
-    if (!input.trim()) return;
-    const next = step + 1;
-    const newMsgs: Msg[] = [...msgs, { role: "user", text: input }];
-    if (next < QUESTIONS.length) {
-      newMsgs.push({ role: "coach", text: QUESTIONS[next] });
-    } else {
-      newMsgs.push({ role: "coach", text: "Merci 🙏 Je vais construire un planning équilibré et adapté pour la semaine prochaine. Rendez-vous dans l'onglet Semaines !" });
-    }
-    setMsgs(newMsgs);
-    setStep(next);
+  const send = async () => {
+    const text = input.trim();
+    if (!text || loading) return;
+    const next: Msg[] = [...msgs, { role: "user", text }];
+    setMsgs(next);
     setInput("");
+    setLoading(true);
+    try {
+      const history = next.map((m) => ({
+        role: m.role === "user" ? ("user" as const) : ("assistant" as const),
+        content: m.text,
+      }));
+      const { content } = await chat({ data: { messages: history } });
+      setMsgs((prev) => [...prev, { role: "coach", text: content || "…" }]);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Erreur inconnue";
+      setMsgs((prev) => [...prev, { role: "coach", text: `⚠️ ${msg}` }]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -60,6 +71,13 @@ function CoachPage() {
             </div>
           </div>
         ))}
+        {loading && (
+          <div className="flex justify-start">
+            <div className="rounded-2xl rounded-bl-md bg-card px-4 py-2.5 text-sm shadow-[var(--shadow-soft)]">
+              <Loader2 className="size-4 animate-spin" />
+            </div>
+          </div>
+        )}
       </div>
       <div className="fixed inset-x-0 bottom-16 z-40 border-t border-border bg-card/95 px-4 py-3 backdrop-blur">
         <div className="mx-auto flex max-w-md gap-2">
@@ -68,10 +86,11 @@ function CoachPage() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send()}
             placeholder="Ta réponse…"
+            disabled={loading}
             className="flex-1 rounded-full border border-border bg-background px-4 py-2 text-sm outline-none focus:border-primary"
           />
-          <button onClick={send} className="grid size-10 place-items-center rounded-full bg-primary text-primary-foreground">
-            <Send className="size-4" />
+          <button onClick={send} disabled={loading} className="grid size-10 place-items-center rounded-full bg-primary text-primary-foreground disabled:opacity-50">
+            {loading ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
           </button>
         </div>
       </div>
