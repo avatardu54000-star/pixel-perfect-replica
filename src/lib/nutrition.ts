@@ -1,6 +1,6 @@
-import type { Aliment, JourPlanifie, Profil, RepasPlanifie, Semaine } from "./types";
+import type { Aliment, BatchConfig, JourPlanifie, Profil, RepasPlanifie, Semaine } from "./types";
 import { ALIMENTS_MAP } from "@/data/aliments";
-import { RECETTES_MAP } from "@/data/recettes";
+import { RECETTES, RECETTES_MAP } from "@/data/recettes";
 
 export const ACTIVITE_FACTEURS: Record<Profil["activite"], number> = {
   sedentaire: 1.2,
@@ -138,6 +138,68 @@ export function genererSemaineDefaut(numero: number, dateDebut: Date): Semaine {
     jours.push({ date: d.toISOString().slice(0, 10), repas });
   }
   return { id: crypto.randomUUID(), numero, date_debut: dateDebut.toISOString().slice(0, 10), jours };
+}
+
+export function genererSemaineBatch(numero: number, dateDebut: Date, cfg: BatchConfig): Semaine {
+  const batchDej = RECETTES.filter((r) => r.type_repas === "dejeuner" && r.batch_cooking).map((r) => r.id);
+  const batchDin = RECETTES.filter((r) => r.type_repas === "diner" && r.batch_cooking).map((r) => r.id);
+  const fraicheDin = RECETTES.filter((r) => r.type_repas === "diner" && !r.batch_cooking).map((r) => r.id);
+  const pdj = "porridge_avoine_cacao";
+  const dessert = "skyr_bowl_dessert";
+
+  const dejPicks = batchDej.slice(0, cfg.dejeunerCount);
+  const dinPicks = batchDin.slice(0, cfg.dinerCount);
+  const fraichePick = fraicheDin[0] ?? batchDin[0];
+
+  // Répartition équitable des 7 jours sur les recettes choisies
+  const assignDays = (picks: string[]) => {
+    const arr: string[] = [];
+    for (let i = 0; i < 7; i++) arr.push(picks[Math.floor((i * picks.length) / 7)]);
+    return arr;
+  };
+  const dejPlan = assignDays(dejPicks);
+  const dinPlan = assignDays(dinPicks);
+
+  const jours: JourPlanifie[] = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(dateDebut);
+    d.setDate(d.getDate() + i);
+    const dinRecette = cfg.specialNights.includes(i) ? fraichePick : dinPlan[i];
+    const repas: RepasPlanifie[] = [
+      { type: "petit_dejeuner", recette_id: pdj, portions: 1 },
+      { type: "dejeuner", recette_id: dejPlan[i], portions: 1 },
+      { type: "diner", recette_id: dinRecette, portions: 1 },
+      { type: "dessert", recette_id: dessert, portions: 1 },
+    ];
+    jours.push({ date: d.toISOString().slice(0, 10), repas });
+  }
+  return { id: crypto.randomUUID(), numero, date_debut: dateDebut.toISOString().slice(0, 10), jours, batch_config: cfg };
+}
+
+export interface BatchSummary {
+  recetteIds: string[];
+  tempsMinutes: number;
+  tupperware: number;
+}
+
+export function batchSummary(semaine: Semaine): BatchSummary {
+  const counts = new Map<string, number>();
+  for (const j of semaine.jours) {
+    for (const r of j.repas) {
+      const rec = RECETTES_MAP[r.recette_id];
+      if (!rec || !rec.batch_cooking) continue;
+      counts.set(r.recette_id, (counts.get(r.recette_id) ?? 0) + r.portions);
+    }
+  }
+  let tempsMinutes = 0;
+  let tupperware = 0;
+  for (const [id, portions] of counts) {
+    const rec = RECETTES_MAP[id];
+    if (!rec) continue;
+    tempsMinutes += rec.temps_total_minutes;
+    tupperware += portions;
+  }
+  return { recetteIds: Array.from(counts.keys()), tempsMinutes, tupperware };
 }
 
 export function startOfWeek(d = new Date()): Date {
