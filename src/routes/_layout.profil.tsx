@@ -15,6 +15,7 @@ function ProfilPage() {
   const hist = useApp((s) => s.historiquePoids);
   const ajouterPoids = useApp((s) => s.ajouterPoids);
   const [poids, setPoids] = useState(profil.poids_kg.toString());
+  const [nom, setNom] = useState(profil.nom);
   const tdee = calcTDEE(profil);
   const protCible = objectifProteines(profil);
   const perdu = (profil.poids_initial_kg - profil.poids_kg).toFixed(1);
@@ -25,6 +26,24 @@ function ProfilPage() {
         <p className="text-xs uppercase tracking-wider opacity-90">Progression</p>
         <p className="mt-1 font-display text-4xl">−{perdu} kg</p>
         <p className="mt-1 text-sm opacity-90">depuis le début</p>
+      </section>
+
+      <section className="mb-5 rounded-2xl bg-card p-4 shadow-[var(--shadow-soft)]">
+        <h3 className="mb-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">Prénom</h3>
+        <div className="flex gap-2">
+          <input
+            value={nom}
+            onChange={(e) => setNom(e.target.value)}
+            className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm"
+            placeholder="Ton prénom"
+          />
+          <button
+            onClick={() => setProfil({ nom: nom.trim() || "Toi" })}
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+          >
+            Enregistrer
+          </button>
+        </div>
       </section>
 
       <section className="mb-5 grid grid-cols-2 gap-3">
