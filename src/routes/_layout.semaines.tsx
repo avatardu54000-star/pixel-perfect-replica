@@ -41,10 +41,15 @@ function SemainesPage() {
             Semaine {s.numero}
           </button>
         ))}
-        <button onClick={() => setBatchOpen(true)} className="shrink-0 rounded-full border border-primary/40 bg-card p-2 text-primary">
-          <Plus className="size-4" />
-        </button>
       </div>
+
+      <button
+        onClick={() => setBatchOpen(true)}
+        className="mb-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-primary/40 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary transition hover:bg-primary/10"
+      >
+        <ChefHat className="size-4" /> Configurer mon batch cooking
+        <Plus className="size-4 opacity-70" />
+      </button>
 
       {summary && (
         <section className="mb-4 rounded-2xl p-4 text-primary-foreground shadow-[var(--shadow-warm)]" style={{ background: "var(--gradient-warm)" }}>
