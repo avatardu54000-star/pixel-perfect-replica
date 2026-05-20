@@ -1,10 +1,10 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { PoidsEntry, Preferences, Profil, Semaine } from "./types";
-import { genererSemaineDefaut, startOfWeek } from "./nutrition";
+import type { BatchConfig, PoidsEntry, Preferences, Profil, Semaine } from "./types";
+import { genererSemaineBatch, genererSemaineDefaut, startOfWeek } from "./nutrition";
 
 const PROFIL_DEFAUT: Profil = {
-  nom: "Utilisateur",
+  nom: "Alex",
   sexe: "homme",
   age: 30,
   taille_cm: 178,
@@ -36,6 +36,7 @@ interface State {
   setProfil: (p: Partial<Profil>) => void;
   setPreferences: (p: Partial<Preferences>) => void;
   ajouterSemaine: () => Semaine;
+  ajouterSemaineBatch: (cfg: BatchConfig) => Semaine;
   setSemaineActive: (id: string) => void;
   changerRepas: (semaineId: string, jourIndex: number, type: string, recetteId: string) => void;
   ajouterPoids: (poids: number) => void;
@@ -64,6 +65,15 @@ export const useApp = create<State>()(
           const nextStart = last ? new Date(last.date_debut) : startOfWeek();
           if (last) nextStart.setDate(nextStart.getDate() + 7);
           const s = genererSemaineDefaut((last?.numero ?? 0) + 1, nextStart);
+          set({ semaines: [...sems, s], semaineActiveId: s.id });
+          return s;
+        },
+        ajouterSemaineBatch: (cfg) => {
+          const sems = get().semaines;
+          const last = sems[sems.length - 1];
+          const nextStart = last ? new Date(last.date_debut) : startOfWeek();
+          if (last) nextStart.setDate(nextStart.getDate() + 7);
+          const s = genererSemaineBatch((last?.numero ?? 0) + 1, nextStart, cfg);
           set({ semaines: [...sems, s], semaineActiveId: s.id });
           return s;
         },
