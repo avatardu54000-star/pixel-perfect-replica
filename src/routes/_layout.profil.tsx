@@ -4,6 +4,8 @@ import { useApp } from "@/lib/store";
 import { calcTDEE, objectifProteines } from "@/lib/nutrition";
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
 import { useState } from "react";
+import { ALIMENTS, ALIMENTS_MAP } from "@/data/aliments";
+import { Clock, Infinity as InfinityIcon, X } from "lucide-react";
 
 export const Route = createFileRoute("/_layout/profil")({
   component: ProfilPage,
@@ -12,13 +14,28 @@ export const Route = createFileRoute("/_layout/profil")({
 function ProfilPage() {
   const profil = useApp((s) => s.profil);
   const setProfil = useApp((s) => s.setProfil);
+  const preferences = useApp((s) => s.preferences);
+  const setPreferences = useApp((s) => s.setPreferences);
   const hist = useApp((s) => s.historiquePoids);
   const ajouterPoids = useApp((s) => s.ajouterPoids);
   const [poids, setPoids] = useState(profil.poids_kg.toString());
   const [nom, setNom] = useState(profil.nom);
+  const [exclusionPicker, setExclusionPicker] = useState<"temporaire" | "definitif" | null>(null);
   const tdee = calcTDEE(profil);
   const protCible = objectifProteines(profil);
   const perdu = (profil.poids_initial_kg - profil.poids_kg).toFixed(1);
+
+  const removeBan = (kind: "temporaire" | "definitif", id: string) => {
+    const key = kind === "temporaire" ? "bannis_temporaire" : "bannis_definitif";
+    setPreferences({ [key]: preferences[key].filter((x) => x !== id) } as Partial<typeof preferences>);
+  };
+  const addBan = (kind: "temporaire" | "definitif", id: string) => {
+    const key = kind === "temporaire" ? "bannis_temporaire" : "bannis_definitif";
+    if (preferences[key].includes(id)) return;
+    setPreferences({ [key]: [...preferences[key], id] } as Partial<typeof preferences>);
+  };
+  const isBanned = (id: string) =>
+    preferences.bannis_temporaire.includes(id) || preferences.bannis_definitif.includes(id);
 
   return (
     <AppShell title="Profil" subtitle={`${profil.nom} · ${profil.age} ans`}>
@@ -99,10 +116,109 @@ function ProfilPage() {
         </div>
       </section>
 
+      <section className="mb-5 rounded-2xl bg-card p-4 shadow-[var(--shadow-soft)]">
+        <h3 className="mb-1 text-sm font-bold uppercase tracking-wider text-muted-foreground">Mes exclusions alimentaires</h3>
+        <p className="mb-3 text-xs text-muted-foreground">Aliments que l'IA évitera dans tes plannings.</p>
+        <ExclusionBlock
+          title="Temporaires"
+          hint="pause de quelques semaines"
+          icon={<Clock className="size-3" />}
+          tone="warning"
+          ids={preferences.bannis_temporaire}
+          onRemove={(id) => removeBan("temporaire", id)}
+          onAdd={() => setExclusionPicker("temporaire")}
+        />
+        <div className="my-3 h-px bg-border" />
+        <ExclusionBlock
+          title="Définitifs"
+          hint="allergie, dégoût, intolérance"
+          icon={<InfinityIcon className="size-3" />}
+          tone="danger"
+          ids={preferences.bannis_definitif}
+          onRemove={(id) => removeBan("definitif", id)}
+          onAdd={() => setExclusionPicker("definitif")}
+        />
+      </section>
+
+      {exclusionPicker && (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/50" onClick={() => setExclusionPicker(null)}>
+          <div className="max-h-[80vh] w-full overflow-y-auto rounded-t-3xl bg-card p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="font-display text-xl">
+                Ajouter une exclusion {exclusionPicker === "temporaire" ? "temporaire" : "définitive"}
+              </h3>
+              <button onClick={() => setExclusionPicker(null)} aria-label="Fermer"><X className="size-5" /></button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {ALIMENTS.map((a) => {
+                const banned = isBanned(a.id);
+                return (
+                  <button
+                    key={a.id}
+                    disabled={banned}
+                    onClick={() => { addBan(exclusionPicker, a.id); setExclusionPicker(null); }}
+                    className={`rounded-xl p-3 text-left text-sm transition ${
+                      banned ? "bg-muted/40 text-muted-foreground opacity-50" : "bg-muted hover:bg-muted/70"
+                    }`}
+                  >
+                    <p className="truncate font-medium">{a.nom}</p>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{a.categorie}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       <p className="px-2 text-center text-xs text-muted-foreground">
         💡 Pense à refaire un bilan balance connectée toutes les 6-8 semaines pour affiner tes données.
       </p>
     </AppShell>
+  );
+}
+
+function ExclusionBlock({
+  title, hint, icon, tone, ids, onRemove, onAdd,
+}: {
+  title: string; hint: string; icon: React.ReactNode;
+  tone: "warning" | "danger";
+  ids: string[]; onRemove: (id: string) => void; onAdd: () => void;
+}) {
+  const toneClass =
+    tone === "warning"
+      ? "bg-warning/15 text-warning border-warning/30"
+      : "bg-destructive/15 text-destructive border-destructive/30";
+  return (
+    <div>
+      <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold">
+        <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 ${toneClass}`}>
+          {icon} {title}
+        </span>
+        <span className="text-muted-foreground">· {hint}</span>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {ids.length === 0 && <p className="text-xs text-muted-foreground">Aucun aliment exclu.</p>}
+        {ids.map((id) => {
+          const a = ALIMENTS_MAP[id];
+          const label = a?.nom ?? id;
+          return (
+            <span key={id} className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium ${toneClass}`}>
+              {label}
+              <button onClick={() => onRemove(id)} aria-label={`Retirer ${label}`} className="opacity-70 hover:opacity-100">
+                <X className="size-3" />
+              </button>
+            </span>
+          );
+        })}
+        <button
+          onClick={onAdd}
+          className="rounded-full border border-dashed border-border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted"
+        >
+          + Ajouter
+        </button>
+      </div>
+    </div>
   );
 }
 
