@@ -205,7 +205,7 @@ function BatchConfigSheet({ onClose, onConfirm }: { onClose: () => void; onConfi
             <div className="grid grid-cols-3 gap-3">
               <Stat icon={<ChefHat className="size-4" />} value={`${totalRec}`} label="recettes" />
               <Stat icon={<Clock className="size-4" />} value={`~${Math.round(tempsEstime / 60 * 10) / 10}h`} label="cuisine" />
-              <Stat icon={<Package className="size-4" />} value={`${7 - specialNights.length + 7}`} label="tupperware" />
+              <Stat icon={<Package className="size-4" />} value={`${14 - specialNights.length}`} label="tupperware" />
             </div>
             {tempsEstime / 60 > satMaxHours && (
               <p className="mt-3 text-xs text-warning">⚠️ Temps estimé au-dessus de ta limite. Réduis le nombre de recettes.</p>
