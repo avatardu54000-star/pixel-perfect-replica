@@ -61,6 +61,14 @@ export interface Semaine {
   date_debut: string;
   jours: JourPlanifie[];
   note_check_in?: string;
+  batch_config?: BatchConfig;
+}
+
+export interface BatchConfig {
+  dejeunerCount: 1 | 2 | 3;
+  dinerCount: 1 | 2 | 3;
+  specialNights: number[]; // indices 0..6 (lun..dim) recevant une recette "fraîche" non batch
+  satMaxHours: 1 | 2 | 3;
 }
 
 export interface Profil {
