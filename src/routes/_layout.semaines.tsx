@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/app/AppShell";
 import { useApp } from "@/lib/store";
-import { JOURS_LABELS, macrosJour, prixSemaine, REPAS_LABELS } from "@/lib/nutrition";
+import { batchSummary, JOURS_LABELS, macrosJour, prixSemaine, REPAS_LABELS } from "@/lib/nutrition";
 import { RECETTES, RECETTES_MAP } from "@/data/recettes";
 import { useState } from "react";
-import { Plus, X } from "lucide-react";
-import type { RepasPlanifie } from "@/lib/types";
+import { ChefHat, Clock, Package, Plus, Sparkles, X } from "lucide-react";
+import type { BatchConfig, RepasPlanifie } from "@/lib/types";
 import { RepasDetailSheet } from "@/components/app/RepasDetailSheet";
 
 export const Route = createFileRoute("/_layout/semaines")({
@@ -16,13 +16,16 @@ function SemainesPage() {
   const semaines = useApp((s) => s.semaines);
   const activeId = useApp((s) => s.semaineActiveId);
   const setActive = useApp((s) => s.setSemaineActive);
-  const ajouter = useApp((s) => s.ajouterSemaine);
+  const ajouterBatch = useApp((s) => s.ajouterSemaineBatch);
   const profil = useApp((s) => s.profil);
   const changerRepas = useApp((s) => s.changerRepas);
   const semaine = semaines.find((s) => s.id === activeId) ?? semaines[0];
 
   const [editing, setEditing] = useState<{ jourIdx: number; type: RepasPlanifie["type"] } | null>(null);
   const [detail, setDetail] = useState<{ jourIdx: number; repas: RepasPlanifie } | null>(null);
+  const [batchOpen, setBatchOpen] = useState(false);
+
+  const summary = semaine.batch_config ? batchSummary(semaine) : null;
 
   return (
     <AppShell title="Semaines" subtitle={`Budget estimé · ${prixSemaine(semaine)} €`}>
@@ -38,10 +41,21 @@ function SemainesPage() {
             Semaine {s.numero}
           </button>
         ))}
-        <button onClick={() => ajouter()} className="shrink-0 rounded-full border border-primary/40 bg-card p-2 text-primary">
+        <button onClick={() => setBatchOpen(true)} className="shrink-0 rounded-full border border-primary/40 bg-card p-2 text-primary">
           <Plus className="size-4" />
         </button>
       </div>
+
+      {summary && (
+        <section className="mb-4 rounded-2xl p-4 text-primary-foreground shadow-[var(--shadow-warm)]" style={{ background: "var(--gradient-warm)" }}>
+          <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-wider opacity-90">
+            <ChefHat className="size-3.5" /> Batch cooking samedi
+          </div>
+          <p className="font-display text-lg leading-snug">
+            Tu prépares <b>{summary.recetteIds.length}</b> recettes — environ <b>{Math.round(summary.tempsMinutes / 60 * 10) / 10}h</b> en cuisine — <b>{summary.tupperware}</b> tupperware à prévoir.
+          </p>
+        </section>
+      )}
 
       <div className="space-y-3">
         {semaine.jours.map((jour, jourIdx) => {
@@ -113,6 +127,137 @@ function SemainesPage() {
           </div>
         </div>
       )}
+
+      {batchOpen && (
+        <BatchConfigSheet
+          onClose={() => setBatchOpen(false)}
+          onConfirm={(cfg) => { ajouterBatch(cfg); setBatchOpen(false); }}
+        />
+      )}
     </AppShell>
+  );
+}
+
+function BatchConfigSheet({ onClose, onConfirm }: { onClose: () => void; onConfirm: (cfg: BatchConfig) => void }) {
+  const [dejeunerCount, setDej] = useState<1 | 2 | 3>(2);
+  const [dinerCount, setDin] = useState<1 | 2 | 3>(2);
+  const [specialNights, setSpecial] = useState<number[]>([4, 6]);
+  const [satMaxHours, setSat] = useState<1 | 2 | 3>(2);
+
+  const toggleNight = (i: number) =>
+    setSpecial((s) => (s.includes(i) ? s.filter((x) => x !== i) : [...s, i]));
+
+  const totalRec = dejeunerCount + dinerCount;
+  const tempsEstime = totalRec * 35; // moyenne minutes
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end bg-black/50" onClick={onClose}>
+      <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-card p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h3 className="font-display text-xl">Mode Batch Cooking</h3>
+            <p className="text-xs text-muted-foreground">Configure ton samedi de prep</p>
+          </div>
+          <button onClick={onClose} aria-label="Fermer"><X className="size-5" /></button>
+        </div>
+
+        <div className="space-y-5">
+          <Field label="Combien de recettes pour les déjeuners ?" hint={`Chaque recette couvre ~${Math.ceil(7 / dejeunerCount)} jours`}>
+            <Segmented value={dejeunerCount} onChange={(v) => setDej(v as 1 | 2 | 3)} options={[1, 2, 3]} />
+          </Field>
+
+          <Field label="Combien de recettes pour les dîners ?" hint={`Chaque recette couvre ~${Math.ceil(7 / dinerCount)} jours`}>
+            <Segmented value={dinerCount} onChange={(v) => setDin(v as 1 | 2 | 3)} options={[1, 2, 3]} />
+          </Field>
+
+          <Field label="Une recette spéciale certains soirs ?" hint="Plat frais non-batch (ex: poisson le vendredi)">
+            <div className="flex flex-wrap gap-2">
+              {JOURS_LABELS.map((j, i) => {
+                const on = specialNights.includes(i);
+                return (
+                  <button
+                    key={j}
+                    onClick={() => toggleNight(i)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                      on ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {j} soir
+                  </button>
+                );
+              })}
+            </div>
+          </Field>
+
+          <Field label="Combien d'heures max en cuisine le samedi ?">
+            <Segmented
+              value={satMaxHours}
+              onChange={(v) => setSat(v as 1 | 2 | 3)}
+              options={[1, 2, 3]}
+              format={(v) => (v === 3 ? "3h+" : `${v}h`)}
+            />
+          </Field>
+
+          <div className="rounded-2xl bg-muted p-4">
+            <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <Sparkles className="size-3.5" /> Estimation
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <Stat icon={<ChefHat className="size-4" />} value={`${totalRec}`} label="recettes" />
+              <Stat icon={<Clock className="size-4" />} value={`~${Math.round(tempsEstime / 60 * 10) / 10}h`} label="cuisine" />
+              <Stat icon={<Package className="size-4" />} value={`${7 - specialNights.length + 7}`} label="tupperware" />
+            </div>
+            {tempsEstime / 60 > satMaxHours && (
+              <p className="mt-3 text-xs text-warning">⚠️ Temps estimé au-dessus de ta limite. Réduis le nombre de recettes.</p>
+            )}
+          </div>
+
+          <button
+            onClick={() => onConfirm({ dejeunerCount, dinerCount, specialNights, satMaxHours })}
+            className="w-full rounded-2xl bg-primary py-3.5 font-semibold text-primary-foreground shadow-[var(--shadow-warm)]"
+          >
+            Générer la semaine
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="mb-1 text-sm font-semibold">{label}</p>
+      {hint && <p className="mb-2 text-xs text-muted-foreground">{hint}</p>}
+      {children}
+    </div>
+  );
+}
+
+function Segmented<T extends number>({ value, onChange, options, format }: { value: T; onChange: (v: T) => void; options: T[]; format?: (v: T) => string }) {
+  return (
+    <div className="flex gap-2">
+      {options.map((o) => (
+        <button
+          key={o}
+          onClick={() => onChange(o)}
+          className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition ${
+            value === o ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+          }`}
+        >
+          {format ? format(o) : o}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function Stat({ icon, value, label }: { icon: React.ReactNode; value: string; label: string }) {
+  return (
+    <div className="rounded-xl bg-card p-2.5 text-center">
+      <div className="mb-1 flex justify-center text-primary">{icon}</div>
+      <p className="font-display text-lg leading-none">{value}</p>
+      <p className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
+    </div>
   );
 }
