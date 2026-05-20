@@ -4,6 +4,8 @@ import { useApp } from "@/lib/store";
 import { calcTDEE, objectifProteines } from "@/lib/nutrition";
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
 import { useState } from "react";
+import { ALIMENTS, ALIMENTS_MAP } from "@/data/aliments";
+import { Clock, Infinity as InfinityIcon, X } from "lucide-react";
 
 export const Route = createFileRoute("/_layout/profil")({
   component: ProfilPage,
@@ -12,13 +14,28 @@ export const Route = createFileRoute("/_layout/profil")({
 function ProfilPage() {
   const profil = useApp((s) => s.profil);
   const setProfil = useApp((s) => s.setProfil);
+  const preferences = useApp((s) => s.preferences);
+  const setPreferences = useApp((s) => s.setPreferences);
   const hist = useApp((s) => s.historiquePoids);
   const ajouterPoids = useApp((s) => s.ajouterPoids);
   const [poids, setPoids] = useState(profil.poids_kg.toString());
   const [nom, setNom] = useState(profil.nom);
+  const [exclusionPicker, setExclusionPicker] = useState<"temporaire" | "definitif" | null>(null);
   const tdee = calcTDEE(profil);
   const protCible = objectifProteines(profil);
   const perdu = (profil.poids_initial_kg - profil.poids_kg).toFixed(1);
+
+  const removeBan = (kind: "temporaire" | "definitif", id: string) => {
+    const key = kind === "temporaire" ? "bannis_temporaire" : "bannis_definitif";
+    setPreferences({ [key]: preferences[key].filter((x) => x !== id) } as Partial<typeof preferences>);
+  };
+  const addBan = (kind: "temporaire" | "definitif", id: string) => {
+    const key = kind === "temporaire" ? "bannis_temporaire" : "bannis_definitif";
+    if (preferences[key].includes(id)) return;
+    setPreferences({ [key]: [...preferences[key], id] } as Partial<typeof preferences>);
+  };
+  const isBanned = (id: string) =>
+    preferences.bannis_temporaire.includes(id) || preferences.bannis_definitif.includes(id);
 
   return (
     <AppShell title="Profil" subtitle={`${profil.nom} · ${profil.age} ans`}>
@@ -103,6 +120,50 @@ function ProfilPage() {
         💡 Pense à refaire un bilan balance connectée toutes les 6-8 semaines pour affiner tes données.
       </p>
     </AppShell>
+  );
+}
+
+function ExclusionBlock({
+  title, hint, icon, tone, ids, onRemove, onAdd,
+}: {
+  title: string; hint: string; icon: React.ReactNode;
+  tone: "warning" | "danger";
+  ids: string[]; onRemove: (id: string) => void; onAdd: () => void;
+}) {
+  const toneClass =
+    tone === "warning"
+      ? "bg-warning/15 text-warning border-warning/30"
+      : "bg-destructive/15 text-destructive border-destructive/30";
+  return (
+    <div>
+      <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold">
+        <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 ${toneClass}`}>
+          {icon} {title}
+        </span>
+        <span className="text-muted-foreground">· {hint}</span>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {ids.length === 0 && <p className="text-xs text-muted-foreground">Aucun aliment exclu.</p>}
+        {ids.map((id) => {
+          const label = id;
+          return (
+            <span key={id} className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium ${toneClass}`}>
+              {(typeof window !== "undefined" && (window as any)) || null}
+              {label}
+              <button onClick={() => onRemove(id)} aria-label={`Retirer ${label}`} className="opacity-70 hover:opacity-100">
+                <X className="size-3" />
+              </button>
+            </span>
+          );
+        })}
+        <button
+          onClick={onAdd}
+          className="rounded-full border border-dashed border-border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted"
+        >
+          + Ajouter
+        </button>
+      </div>
+    </div>
   );
 }
 
