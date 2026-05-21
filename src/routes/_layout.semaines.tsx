@@ -204,6 +204,13 @@ function BatchConfigSheet({ onClose, onConfirm }: { onClose: () => void; onConfi
 
   const valid = totalAssigned > 0;
 
+  const reset = () => {
+    setRecipes([{ name: "" }]);
+    setCurrentIdx(0);
+    setDej(Array(7).fill(null));
+    setDin(Array(7).fill(null));
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-end bg-black/50" onClick={onClose}>
       <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-card p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
@@ -325,6 +332,12 @@ function BatchConfigSheet({ onClose, onConfirm }: { onClose: () => void; onConfi
           className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 font-semibold text-primary-foreground shadow-[var(--shadow-warm)] disabled:opacity-50"
         >
           <Wand2 className="size-4" /> Générer la semaine
+        </button>
+        <button
+          onClick={reset}
+          className="mt-2 w-full rounded-2xl border border-border bg-card py-2.5 text-sm font-medium text-muted-foreground transition hover:bg-muted"
+        >
+          Réinitialiser la grille
         </button>
       </div>
     </div>
