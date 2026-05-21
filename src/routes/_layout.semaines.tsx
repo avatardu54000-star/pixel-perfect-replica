@@ -144,16 +144,56 @@ function SemainesPage() {
 }
 
 function BatchConfigSheet({ onClose, onConfirm }: { onClose: () => void; onConfirm: (cfg: BatchConfig) => void }) {
-  const [dejeunerCount, setDej] = useState<1 | 2 | 3>(2);
-  const [dinerCount, setDin] = useState<1 | 2 | 3>(2);
-  const [specialNights, setSpecial] = useState<number[]>([4, 6]);
+const RECIPE_COLORS = [
+  { bg: "bg-[#F97316] text-white", chip: "bg-[#F97316] text-white", dot: "bg-[#F97316]", name: "Orange" },
+  { bg: "bg-[#16A34A] text-white", chip: "bg-[#16A34A] text-white", dot: "bg-[#16A34A]", name: "Vert" },
+  { bg: "bg-[#2563EB] text-white", chip: "bg-[#2563EB] text-white", dot: "bg-[#2563EB]", name: "Bleu" },
+  { bg: "bg-[#9333EA] text-white", chip: "bg-[#9333EA] text-white", dot: "bg-[#9333EA]", name: "Violet" },
+  { bg: "bg-[#DB2777] text-white", chip: "bg-[#DB2777] text-white", dot: "bg-[#DB2777]", name: "Rose" },
+  { bg: "bg-[#0D9488] text-white", chip: "bg-[#0D9488] text-white", dot: "bg-[#0D9488]", name: "Sarcelle" },
+];
+
+function BatchConfigSheet({ onClose, onConfirm }: { onClose: () => void; onConfirm: (cfg: BatchConfig) => void }) {
+  const [recipes, setRecipes] = useState<{ name: string }[]>([{ name: "" }]);
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [dej, setDej] = useState<(number | null)[]>(Array(7).fill(null));
+  const [din, setDin] = useState<(number | null)[]>(Array(7).fill(null));
   const [satMaxHours, setSat] = useState<1 | 2 | 3>(2);
 
-  const toggleNight = (i: number) =>
-    setSpecial((s) => (s.includes(i) ? s.filter((x) => x !== i) : [...s, i]));
+  const totalAssigned = [...dej, ...din].filter((x) => x !== null).length;
+  const tempsEstime = recipes.length * 35;
 
-  const totalRec = dejeunerCount + dinerCount;
-  const tempsEstime = totalRec * 35; // moyenne minutes
+  const toggleCell = (meal: "dej" | "din", i: number) => {
+    const setter = meal === "dej" ? setDej : setDin;
+    const arr = meal === "dej" ? dej : din;
+    const next = [...arr];
+    next[i] = next[i] === currentIdx ? null : currentIdx;
+    setter(next);
+  };
+
+  const addRecipe = () => {
+    if (recipes.length >= RECIPE_COLORS.length) return;
+    setRecipes((rs) => [...rs, { name: "" }]);
+    setCurrentIdx(recipes.length);
+  };
+
+  const removeRecipe = (idx: number) => {
+    if (recipes.length <= 1) return;
+    const reidx = (v: number | null) => (v === idx ? null : v !== null && v > idx ? v - 1 : v);
+    setDej(dej.map(reidx));
+    setDin(din.map(reidx));
+    setRecipes(recipes.filter((_, i) => i !== idx));
+    setCurrentIdx(Math.max(0, currentIdx >= recipes.length - 1 ? recipes.length - 2 : currentIdx));
+  };
+
+  const renameRecipe = (idx: number, name: string) => {
+    setRecipes(recipes.map((r, i) => (i === idx ? { ...r, name } : r)));
+  };
+
+  const countFor = (idx: number) =>
+    [...dej, ...din].filter((v) => v === idx).length;
+
+  const valid = totalAssigned > 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end bg-black/50" onClick={onClose}>
@@ -161,71 +201,139 @@ function BatchConfigSheet({ onClose, onConfirm }: { onClose: () => void; onConfi
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h3 className="font-display text-xl">Mode Batch Cooking</h3>
-            <p className="text-xs text-muted-foreground">Configure ton samedi de prep</p>
+            <p className="text-xs text-muted-foreground">Tape une case pour l'assigner à la recette active</p>
           </div>
           <button onClick={onClose} aria-label="Fermer"><X className="size-5" /></button>
         </div>
 
-        <div className="space-y-5">
-          <Field label="Combien de recettes pour les déjeuners ?" hint={`Chaque recette couvre ~${Math.ceil(7 / dejeunerCount)} jours`}>
-            <Segmented value={dejeunerCount} onChange={(v) => setDej(v as 1 | 2 | 3)} options={[1, 2, 3]} />
-          </Field>
-
-          <Field label="Combien de recettes pour les dîners ?" hint={`Chaque recette couvre ~${Math.ceil(7 / dinerCount)} jours`}>
-            <Segmented value={dinerCount} onChange={(v) => setDin(v as 1 | 2 | 3)} options={[1, 2, 3]} />
-          </Field>
-
-          <Field label="Une recette spéciale certains soirs ?" hint="Plat frais non-batch (ex: poisson le vendredi)">
-            <div className="flex flex-wrap gap-2">
-              {JOURS_LABELS.map((j, i) => {
-                const on = specialNights.includes(i);
-                return (
-                  <button
-                    key={j}
-                    onClick={() => toggleNight(i)}
-                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                      on ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {j} soir
-                  </button>
-                );
-              })}
-            </div>
-          </Field>
-
-          <Field label="Combien d'heures max en cuisine le samedi ?">
-            <Segmented
-              value={satMaxHours}
-              onChange={(v) => setSat(v as 1 | 2 | 3)}
-              options={[1, 2, 3]}
-              format={(v) => (v === 3 ? "3h+" : `${v}h`)}
-            />
-          </Field>
-
-          <div className="rounded-2xl bg-muted p-4">
-            <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              <Sparkles className="size-3.5" /> Estimation
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              <Stat icon={<ChefHat className="size-4" />} value={`${totalRec}`} label="recettes" />
-              <Stat icon={<Clock className="size-4" />} value={`~${Math.round(tempsEstime / 60 * 10) / 10}h`} label="cuisine" />
-              <Stat icon={<Package className="size-4" />} value={`${14 - specialNights.length}`} label="tupperware" />
-            </div>
-            {tempsEstime / 60 > satMaxHours && (
-              <p className="mt-3 text-xs text-warning">⚠️ Temps estimé au-dessus de ta limite. Réduis le nombre de recettes.</p>
-            )}
-          </div>
-
-          <button
-            onClick={() => onConfirm({ dejeunerCount, dinerCount, specialNights, satMaxHours })}
-            className="w-full rounded-2xl bg-primary py-3.5 font-semibold text-primary-foreground shadow-[var(--shadow-warm)]"
-          >
-            Générer la semaine
-          </button>
+        {/* Sélecteur de recette active */}
+        <div className="mb-3 flex flex-wrap gap-2">
+          {recipes.map((r, i) => {
+            const c = RECIPE_COLORS[i];
+            const letter = String.fromCharCode(65 + i);
+            const active = i === currentIdx;
+            return (
+              <button
+                key={i}
+                onClick={() => setCurrentIdx(i)}
+                className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition ${
+                  active ? `${c.chip} ring-2 ring-offset-2 ring-offset-card` : "bg-muted text-muted-foreground"
+                }`}
+                style={active ? { boxShadow: `0 0 0 2px var(--card), 0 0 0 4px ${c.dot.replace("bg-[", "").replace("]", "")}` } : undefined}
+              >
+                <span className={`inline-block size-2 rounded-full ${active ? "bg-white" : c.dot}`} />
+                Recette {letter}
+              </button>
+            );
+          })}
+          {recipes.length < RECIPE_COLORS.length && (
+            <button
+              onClick={addRecipe}
+              className="flex items-center gap-1 rounded-full border-2 border-dashed border-border px-3 py-1.5 text-xs font-bold text-muted-foreground transition hover:border-primary hover:text-primary"
+            >
+              <Plus className="size-3" /> Nouvelle recette
+            </button>
+          )}
         </div>
+
+        {/* Grille 7 jours × 2 repas */}
+        <div className="mb-4 rounded-2xl bg-muted p-3">
+          <div className="grid grid-cols-[auto_repeat(7,1fr)] gap-1.5">
+            <div />
+            {JOURS_LABELS.map((j) => (
+              <div key={j} className="text-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{j}</div>
+            ))}
+            <div className="flex items-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Déj</div>
+            {dej.map((v, i) => (
+              <Cell key={`d${i}`} value={v} onClick={() => toggleCell("dej", i)} />
+            ))}
+            <div className="flex items-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Dîn</div>
+            {din.map((v, i) => (
+              <Cell key={`n${i}`} value={v} onClick={() => toggleCell("din", i)} />
+            ))}
+          </div>
+          <p className="mt-2 text-[10px] text-muted-foreground">Cases vides = repas frais non-batch</p>
+        </div>
+
+        {/* Noms des recettes + portions */}
+        <div className="mb-4 space-y-2">
+          {recipes.map((r, i) => {
+            const c = RECIPE_COLORS[i];
+            const letter = String.fromCharCode(65 + i);
+            const count = countFor(i);
+            return (
+              <div key={i} className="flex items-center gap-2 rounded-xl bg-muted p-2.5">
+                <span className={`flex size-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${c.chip}`}>{letter}</span>
+                <input
+                  value={r.name}
+                  onChange={(e) => renameRecipe(i, e.target.value)}
+                  placeholder="Laisse vide → l'IA choisit"
+                  className="min-w-0 flex-1 rounded-md bg-card px-2.5 py-1.5 text-sm outline-none focus:ring-1 focus:ring-primary"
+                />
+                <span className="shrink-0 rounded-full bg-card px-2 py-0.5 text-[11px] font-bold">{count} portion{count > 1 ? "s" : ""}</span>
+                {recipes.length > 1 && (
+                  <button onClick={() => removeRecipe(i)} className="text-muted-foreground hover:text-destructive" aria-label="Supprimer">
+                    <X className="size-4" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <Field label="Combien d'heures max en cuisine le samedi ?">
+          <Segmented
+            value={satMaxHours}
+            onChange={(v) => setSat(v as 1 | 2 | 3)}
+            options={[1, 2, 3]}
+            format={(v) => (v === 3 ? "3h+" : `${v}h`)}
+          />
+        </Field>
+
+        <div className="my-4 rounded-2xl bg-muted p-4">
+          <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            <Sparkles className="size-3.5" /> Estimation
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <Stat icon={<ChefHat className="size-4" />} value={`${recipes.length}`} label="recettes" />
+            <Stat icon={<Clock className="size-4" />} value={`~${Math.round((tempsEstime / 60) * 10) / 10}h`} label="cuisine" />
+            <Stat icon={<Package className="size-4" />} value={`${totalAssigned}`} label="tupperware" />
+          </div>
+          {tempsEstime / 60 > satMaxHours && (
+            <p className="mt-3 text-xs text-warning">⚠️ Temps estimé au-dessus de ta limite. Réduis le nombre de recettes.</p>
+          )}
+        </div>
+
+        <button
+          disabled={!valid}
+          onClick={() =>
+            onConfirm({
+              satMaxHours,
+              recipes,
+              assignments: { dejeuner: dej, diner: din },
+            })
+          }
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 font-semibold text-primary-foreground shadow-[var(--shadow-warm)] disabled:opacity-50"
+        >
+          <Wand2 className="size-4" /> Générer la semaine
+        </button>
       </div>
     </div>
+  );
+}
+
+function Cell({ value, onClick }: { value: number | null; onClick: () => void }) {
+  const c = value !== null ? RECIPE_COLORS[value] : null;
+  const letter = value !== null ? String.fromCharCode(65 + value) : "";
+  return (
+    <button
+      onClick={onClick}
+      className={`flex aspect-square items-center justify-center rounded-lg text-xs font-bold transition active:scale-95 ${
+        c ? c.bg : "border-2 border-dashed border-border bg-card text-muted-foreground hover:border-primary"
+      }`}
+    >
+      {letter || "·"}
+    </button>
   );
 }
 
