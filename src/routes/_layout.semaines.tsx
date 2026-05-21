@@ -79,14 +79,24 @@ function SemainesPage() {
               <div className="grid grid-cols-2 gap-2">
                 {jour.repas.map((r) => {
                   const recette = RECETTES_MAP[r.recette_id];
+                  const slot =
+                    semaine.batch_config && (r.type === "dejeuner" || r.type === "diner")
+                      ? semaine.batch_config.assignments[r.type === "dejeuner" ? "dejeuner" : "diner"][jourIdx]
+                      : null;
+                  const slotInfo = slot !== null && slot !== undefined ? semaine.batch_config?.recipes[slot] : null;
+                  const slotColor = slot !== null && slot !== undefined ? RECIPE_COLORS[slot]?.dot : null;
+                  const displayName = slotInfo?.name?.trim() || recette?.nom;
                   return (
                     <button
                       key={r.type}
                       onClick={() => setDetail({ jourIdx, repas: r })}
-                      className="rounded-xl bg-muted p-2.5 text-left transition hover:bg-muted/70"
+                      className="relative rounded-xl bg-muted p-2.5 text-left transition hover:bg-muted/70"
                     >
-                      <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{REPAS_LABELS[r.type]}</p>
-                      <p className="mt-0.5 line-clamp-2 text-xs font-medium">{recette?.emoji} {recette?.nom}</p>
+                      <div className="flex items-center gap-1.5">
+                        {slotColor && <span className={`inline-block size-1.5 rounded-full ${slotColor}`} />}
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{REPAS_LABELS[r.type]}</p>
+                      </div>
+                      <p className="mt-0.5 line-clamp-2 text-xs font-medium">{recette?.emoji} {displayName}</p>
                     </button>
                   );
                 })}
