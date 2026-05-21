@@ -4,7 +4,7 @@ import { useApp } from "@/lib/store";
 import { batchSummary, JOURS_LABELS, macrosJour, prixSemaine, REPAS_LABELS } from "@/lib/nutrition";
 import { RECETTES, RECETTES_MAP } from "@/data/recettes";
 import { useState } from "react";
-import { ChefHat, Clock, Package, Plus, Sparkles, X, Wand2 } from "lucide-react";
+import { ChefHat, CheckCircle2, Clock, Package, Plus, Sparkles, X, Wand2 } from "lucide-react";
 import type { BatchConfig, RepasPlanifie } from "@/lib/types";
 import { RepasDetailSheet } from "@/components/app/RepasDetailSheet";
 
@@ -24,6 +24,7 @@ function SemainesPage() {
   const [editing, setEditing] = useState<{ jourIdx: number; type: RepasPlanifie["type"] } | null>(null);
   const [detail, setDetail] = useState<{ jourIdx: number; repas: RepasPlanifie } | null>(null);
   const [batchOpen, setBatchOpen] = useState(false);
+  const [confirmMsg, setConfirmMsg] = useState<string | null>(null);
 
   const summary = semaine.batch_config ? batchSummary(semaine) : null;
 
@@ -50,6 +51,16 @@ function SemainesPage() {
         <ChefHat className="size-4" /> Configurer mon batch cooking
         <Plus className="size-4 opacity-70" />
       </button>
+
+      {confirmMsg && (
+        <div className="mb-4 flex items-start gap-2 rounded-2xl bg-success/15 px-4 py-3 text-success">
+          <CheckCircle2 className="mt-0.5 size-5 shrink-0" />
+          <p className="flex-1 text-sm font-semibold leading-snug">{confirmMsg}</p>
+          <button onClick={() => setConfirmMsg(null)} aria-label="Fermer" className="opacity-70 hover:opacity-100">
+            <X className="size-4" />
+          </button>
+        </div>
+      )}
 
       {summary && (
         <section className="mb-4 rounded-2xl p-4 text-primary-foreground shadow-[var(--shadow-warm)]" style={{ background: "var(--gradient-warm)" }}>
