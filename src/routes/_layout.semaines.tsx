@@ -143,7 +143,6 @@ function SemainesPage() {
   );
 }
 
-function BatchConfigSheet({ onClose, onConfirm }: { onClose: () => void; onConfirm: (cfg: BatchConfig) => void }) {
 const RECIPE_COLORS = [
   { bg: "bg-[#F97316] text-white", chip: "bg-[#F97316] text-white", dot: "bg-[#F97316]", name: "Orange" },
   { bg: "bg-[#16A34A] text-white", chip: "bg-[#16A34A] text-white", dot: "bg-[#16A34A]", name: "Vert" },
