@@ -4,7 +4,7 @@ import { useApp } from "@/lib/store";
 import { batchSummary, JOURS_LABELS, macrosJour, prixSemaine, REPAS_LABELS } from "@/lib/nutrition";
 import { RECETTES, RECETTES_MAP } from "@/data/recettes";
 import { useState } from "react";
-import { ChefHat, Clock, Package, Plus, Sparkles, X, Wand2 } from "lucide-react";
+import { ChefHat, CheckCircle2, Clock, Package, Plus, Sparkles, X, Wand2 } from "lucide-react";
 import type { BatchConfig, RepasPlanifie } from "@/lib/types";
 import { RepasDetailSheet } from "@/components/app/RepasDetailSheet";
 
@@ -24,6 +24,7 @@ function SemainesPage() {
   const [editing, setEditing] = useState<{ jourIdx: number; type: RepasPlanifie["type"] } | null>(null);
   const [detail, setDetail] = useState<{ jourIdx: number; repas: RepasPlanifie } | null>(null);
   const [batchOpen, setBatchOpen] = useState(false);
+  const [confirmMsg, setConfirmMsg] = useState<string | null>(null);
 
   const summary = semaine.batch_config ? batchSummary(semaine) : null;
 
@@ -50,6 +51,16 @@ function SemainesPage() {
         <ChefHat className="size-4" /> Configurer mon batch cooking
         <Plus className="size-4 opacity-70" />
       </button>
+
+      {confirmMsg && (
+        <div className="mb-4 flex items-start gap-2 rounded-2xl bg-success/15 px-4 py-3 text-success">
+          <CheckCircle2 className="mt-0.5 size-5 shrink-0" />
+          <p className="flex-1 text-sm font-semibold leading-snug">{confirmMsg}</p>
+          <button onClick={() => setConfirmMsg(null)} aria-label="Fermer" className="opacity-70 hover:opacity-100">
+            <X className="size-4" />
+          </button>
+        </div>
+      )}
 
       {summary && (
         <section className="mb-4 rounded-2xl p-4 text-primary-foreground shadow-[var(--shadow-warm)]" style={{ background: "var(--gradient-warm)" }}>
@@ -146,7 +157,13 @@ function SemainesPage() {
       {batchOpen && (
         <BatchConfigSheet
           onClose={() => setBatchOpen(false)}
-          onConfirm={(cfg) => { ajouterBatch(cfg); setBatchOpen(false); }}
+          onConfirm={(cfg) => {
+            const s = ajouterBatch(cfg);
+            const sum = batchSummary(s);
+            setBatchOpen(false);
+            setConfirmMsg(`Batch cooking configuré — ${sum.tupperware} tupperware à préparer samedi 🎉`);
+            setTimeout(() => setConfirmMsg(null), 6000);
+          }}
         />
       )}
     </AppShell>
@@ -213,8 +230,8 @@ function BatchConfigSheet({ onClose, onConfirm }: { onClose: () => void; onConfi
 
   return (
     <div className="fixed inset-0 z-50 flex items-end bg-black/50" onClick={onClose}>
-      <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-card p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-4 flex items-center justify-between">
+      <div className="flex max-h-[92vh] w-full flex-col rounded-t-3xl bg-card shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-border px-5 pb-3 pt-5">
           <div>
             <h3 className="font-display text-xl">Mode Batch Cooking</h3>
             <p className="text-xs text-muted-foreground">Tape une case pour l'assigner à la recette active</p>
@@ -222,6 +239,7 @@ function BatchConfigSheet({ onClose, onConfirm }: { onClose: () => void; onConfi
           <button onClick={onClose} aria-label="Fermer"><X className="size-5" /></button>
         </div>
 
+        <div className="flex-1 overflow-y-auto px-5 py-4">
         {/* Sélecteur de recette active */}
         <div className="mb-3 flex flex-wrap gap-2">
           {recipes.map((r, i) => {
@@ -320,25 +338,29 @@ function BatchConfigSheet({ onClose, onConfirm }: { onClose: () => void; onConfi
           )}
         </div>
 
-        <button
-          disabled={!valid}
-          onClick={() =>
-            onConfirm({
-              satMaxHours,
-              recipes,
-              assignments: { dejeuner: dej, diner: din },
-            })
-          }
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 font-semibold text-primary-foreground shadow-[var(--shadow-warm)] disabled:opacity-50"
-        >
-          <Wand2 className="size-4" /> Générer la semaine
-        </button>
-        <button
-          onClick={reset}
-          className="mt-2 w-full rounded-2xl border border-border bg-card py-2.5 text-sm font-medium text-muted-foreground transition hover:bg-muted"
-        >
-          Réinitialiser la grille
-        </button>
+        </div>
+
+        <div className="sticky bottom-0 border-t border-border bg-card px-5 pb-[max(env(safe-area-inset-bottom),1rem)] pt-3">
+          <button
+            disabled={!valid}
+            onClick={() =>
+              onConfirm({
+                satMaxHours,
+                recipes,
+                assignments: { dejeuner: dej, diner: din },
+              })
+            }
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 font-semibold text-primary-foreground shadow-[var(--shadow-warm)] disabled:opacity-50"
+          >
+            <Wand2 className="size-4" /> Valider et générer
+          </button>
+          <button
+            onClick={reset}
+            className="mt-2 w-full rounded-2xl py-2 text-xs font-medium text-muted-foreground hover:text-foreground"
+          >
+            Réinitialiser la grille
+          </button>
+        </div>
       </div>
     </div>
   );
