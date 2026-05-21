@@ -4,7 +4,7 @@ import { useApp } from "@/lib/store";
 import { batchSummary, JOURS_LABELS, macrosJour, prixSemaine, REPAS_LABELS } from "@/lib/nutrition";
 import { RECETTES, RECETTES_MAP } from "@/data/recettes";
 import { useState } from "react";
-import { ChefHat, Clock, Package, Plus, Sparkles, X } from "lucide-react";
+import { ChefHat, Clock, Package, Plus, Sparkles, X, Wand2 } from "lucide-react";
 import type { BatchConfig, RepasPlanifie } from "@/lib/types";
 import { RepasDetailSheet } from "@/components/app/RepasDetailSheet";
 
