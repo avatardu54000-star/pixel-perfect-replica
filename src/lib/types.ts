@@ -65,10 +65,14 @@ export interface Semaine {
 }
 
 export interface BatchConfig {
-  dejeunerCount: 1 | 2 | 3;
-  dinerCount: 1 | 2 | 3;
-  specialNights: number[]; // indices 0..6 (lun..dim) recevant une recette "fraîche" non batch
   satMaxHours: 1 | 2 | 3;
+  /** Noms (optionnels) des recettes batch, dans l'ordre. La couleur dépend de l'index. */
+  recipes: { name: string }[];
+  /** Pour chaque jour (0..6) et chaque repas, index de recette ou null = repas frais. */
+  assignments: {
+    dejeuner: (number | null)[];
+    diner: (number | null)[];
+  };
 }
 
 export interface Profil {
