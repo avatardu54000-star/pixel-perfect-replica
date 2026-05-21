@@ -79,14 +79,24 @@ function SemainesPage() {
               <div className="grid grid-cols-2 gap-2">
                 {jour.repas.map((r) => {
                   const recette = RECETTES_MAP[r.recette_id];
+                  const slot =
+                    semaine.batch_config && (r.type === "dejeuner" || r.type === "diner")
+                      ? semaine.batch_config.assignments[r.type === "dejeuner" ? "dejeuner" : "diner"][jourIdx]
+                      : null;
+                  const slotInfo = slot !== null && slot !== undefined ? semaine.batch_config?.recipes[slot] : null;
+                  const slotColor = slot !== null && slot !== undefined ? RECIPE_COLORS[slot]?.dot : null;
+                  const displayName = slotInfo?.name?.trim() || recette?.nom;
                   return (
                     <button
                       key={r.type}
                       onClick={() => setDetail({ jourIdx, repas: r })}
-                      className="rounded-xl bg-muted p-2.5 text-left transition hover:bg-muted/70"
+                      className="relative rounded-xl bg-muted p-2.5 text-left transition hover:bg-muted/70"
                     >
-                      <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{REPAS_LABELS[r.type]}</p>
-                      <p className="mt-0.5 line-clamp-2 text-xs font-medium">{recette?.emoji} {recette?.nom}</p>
+                      <div className="flex items-center gap-1.5">
+                        {slotColor && <span className={`inline-block size-1.5 rounded-full ${slotColor}`} />}
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{REPAS_LABELS[r.type]}</p>
+                      </div>
+                      <p className="mt-0.5 line-clamp-2 text-xs font-medium">{recette?.emoji} {displayName}</p>
                     </button>
                   );
                 })}
@@ -193,6 +203,13 @@ function BatchConfigSheet({ onClose, onConfirm }: { onClose: () => void; onConfi
     [...dej, ...din].filter((v) => v === idx).length;
 
   const valid = totalAssigned > 0;
+
+  const reset = () => {
+    setRecipes([{ name: "" }]);
+    setCurrentIdx(0);
+    setDej(Array(7).fill(null));
+    setDin(Array(7).fill(null));
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-end bg-black/50" onClick={onClose}>
@@ -315,6 +332,12 @@ function BatchConfigSheet({ onClose, onConfirm }: { onClose: () => void; onConfi
           className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 font-semibold text-primary-foreground shadow-[var(--shadow-warm)] disabled:opacity-50"
         >
           <Wand2 className="size-4" /> Générer la semaine
+        </button>
+        <button
+          onClick={reset}
+          className="mt-2 w-full rounded-2xl border border-border bg-card py-2.5 text-sm font-medium text-muted-foreground transition hover:bg-muted"
+        >
+          Réinitialiser la grille
         </button>
       </div>
     </div>
