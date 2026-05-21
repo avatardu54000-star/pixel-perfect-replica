@@ -230,8 +230,8 @@ function BatchConfigSheet({ onClose, onConfirm }: { onClose: () => void; onConfi
 
   return (
     <div className="fixed inset-0 z-50 flex items-end bg-black/50" onClick={onClose}>
-      <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-card p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-4 flex items-center justify-between">
+      <div className="flex max-h-[92vh] w-full flex-col rounded-t-3xl bg-card shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-border px-5 pb-3 pt-5">
           <div>
             <h3 className="font-display text-xl">Mode Batch Cooking</h3>
             <p className="text-xs text-muted-foreground">Tape une case pour l'assigner à la recette active</p>
@@ -239,6 +239,7 @@ function BatchConfigSheet({ onClose, onConfirm }: { onClose: () => void; onConfi
           <button onClick={onClose} aria-label="Fermer"><X className="size-5" /></button>
         </div>
 
+        <div className="flex-1 overflow-y-auto px-5 py-4">
         {/* Sélecteur de recette active */}
         <div className="mb-3 flex flex-wrap gap-2">
           {recipes.map((r, i) => {
@@ -337,25 +338,29 @@ function BatchConfigSheet({ onClose, onConfirm }: { onClose: () => void; onConfi
           )}
         </div>
 
-        <button
-          disabled={!valid}
-          onClick={() =>
-            onConfirm({
-              satMaxHours,
-              recipes,
-              assignments: { dejeuner: dej, diner: din },
-            })
-          }
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 font-semibold text-primary-foreground shadow-[var(--shadow-warm)] disabled:opacity-50"
-        >
-          <Wand2 className="size-4" /> Générer la semaine
-        </button>
-        <button
-          onClick={reset}
-          className="mt-2 w-full rounded-2xl border border-border bg-card py-2.5 text-sm font-medium text-muted-foreground transition hover:bg-muted"
-        >
-          Réinitialiser la grille
-        </button>
+        </div>
+
+        <div className="sticky bottom-0 border-t border-border bg-card px-5 pb-[max(env(safe-area-inset-bottom),1rem)] pt-3">
+          <button
+            disabled={!valid}
+            onClick={() =>
+              onConfirm({
+                satMaxHours,
+                recipes,
+                assignments: { dejeuner: dej, diner: din },
+              })
+            }
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 font-semibold text-primary-foreground shadow-[var(--shadow-warm)] disabled:opacity-50"
+          >
+            <Wand2 className="size-4" /> Valider et générer
+          </button>
+          <button
+            onClick={reset}
+            className="mt-2 w-full rounded-2xl py-2 text-xs font-medium text-muted-foreground hover:text-foreground"
+          >
+            Réinitialiser la grille
+          </button>
+        </div>
       </div>
     </div>
   );
