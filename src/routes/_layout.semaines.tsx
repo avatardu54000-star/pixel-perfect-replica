@@ -157,7 +157,13 @@ function SemainesPage() {
       {batchOpen && (
         <BatchConfigSheet
           onClose={() => setBatchOpen(false)}
-          onConfirm={(cfg) => { ajouterBatch(cfg); setBatchOpen(false); }}
+          onConfirm={(cfg) => {
+            const s = ajouterBatch(cfg);
+            const sum = batchSummary(s);
+            setBatchOpen(false);
+            setConfirmMsg(`Batch cooking configuré — ${sum.tupperware} tupperware à préparer samedi 🎉`);
+            setTimeout(() => setConfirmMsg(null), 6000);
+          }}
         />
       )}
     </AppShell>
