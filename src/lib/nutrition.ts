@@ -146,29 +146,25 @@ export function genererSemaineBatch(numero: number, dateDebut: Date, cfg: BatchC
   const fraicheDin = RECETTES.filter((r) => r.type_repas === "diner" && !r.batch_cooking).map((r) => r.id);
   const pdj = "porridge_avoine_cacao";
   const dessert = "skyr_bowl_dessert";
+  const fraichePick = fraicheDin[0] ?? batchDin[0] ?? "saumon_brocoli";
 
-  const dejPicks = batchDej.slice(0, cfg.dejeunerCount);
-  const dinPicks = batchDin.slice(0, cfg.dinerCount);
-  const fraichePick = fraicheDin[0] ?? batchDin[0];
+  // Pool global de recettes batch (déj + dîner) pour assigner à chaque slot
+  const pool = [...batchDin, ...batchDej];
+  const recipeIds = cfg.recipes.map((_, i) => pool[i % pool.length]);
 
-  // Répartition équitable des 7 jours sur les recettes choisies
-  const assignDays = (picks: string[]) => {
-    const arr: string[] = [];
-    for (let i = 0; i < 7; i++) arr.push(picks[Math.floor((i * picks.length) / 7)]);
-    return arr;
+  const pickFor = (mealType: "dejeuner" | "diner", slotIdx: number | null): string => {
+    if (slotIdx === null || slotIdx >= recipeIds.length) return fraichePick;
+    return recipeIds[slotIdx];
   };
-  const dejPlan = assignDays(dejPicks);
-  const dinPlan = assignDays(dinPicks);
 
   const jours: JourPlanifie[] = [];
   for (let i = 0; i < 7; i++) {
     const d = new Date(dateDebut);
     d.setDate(d.getDate() + i);
-    const dinRecette = cfg.specialNights.includes(i) ? fraichePick : dinPlan[i];
     const repas: RepasPlanifie[] = [
       { type: "petit_dejeuner", recette_id: pdj, portions: 1 },
-      { type: "dejeuner", recette_id: dejPlan[i], portions: 1 },
-      { type: "diner", recette_id: dinRecette, portions: 1 },
+      { type: "dejeuner", recette_id: pickFor("dejeuner", cfg.assignments.dejeuner[i] ?? null), portions: 1 },
+      { type: "diner", recette_id: pickFor("diner", cfg.assignments.diner[i] ?? null), portions: 1 },
       { type: "dessert", recette_id: dessert, portions: 1 },
     ];
     jours.push({ date: d.toISOString().slice(0, 10), repas });
