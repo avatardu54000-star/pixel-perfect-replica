@@ -2,11 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/app/AppShell";
 import { useApp } from "@/lib/store";
 import { batchSummary, JOURS_LABELS, macrosJour, prixSemaine, REPAS_LABELS } from "@/lib/nutrition";
-import { RECETTES, RECETTES_MAP } from "@/data/recettes";
+import { RECETTES } from "@/data/recettes";
+import { getRecette } from "@/lib/recipeLookup";
 import { useState } from "react";
-import { ChefHat, CheckCircle2, Clock, Package, Plus, Sparkles, X, Wand2 } from "lucide-react";
+import { ChefHat, CheckCircle2, Clock, MessageCircle, Package, Plus, Sparkles, X, Wand2 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import type { BatchConfig, RepasPlanifie } from "@/lib/types";
 import { RepasDetailSheet } from "@/components/app/RepasDetailSheet";
+import { RepasEditSheet } from "@/components/app/RepasEditSheet";
 
 export const Route = createFileRoute("/_layout/semaines")({
   component: SemainesPage,
@@ -19,10 +22,12 @@ function SemainesPage() {
   const ajouterBatch = useApp((s) => s.ajouterSemaineBatch);
   const profil = useApp((s) => s.profil);
   const changerRepas = useApp((s) => s.changerRepas);
+  const checkInDone = useApp((s) => s.checkInDone);
   const semaine = semaines.find((s) => s.id === activeId) ?? semaines[0];
 
   const [editing, setEditing] = useState<{ jourIdx: number; type: RepasPlanifie["type"] } | null>(null);
   const [detail, setDetail] = useState<{ jourIdx: number; repas: RepasPlanifie } | null>(null);
+  const [editIng, setEditIng] = useState<{ jourIdx: number; repas: RepasPlanifie } | null>(null);
   const [batchOpen, setBatchOpen] = useState(false);
   const [confirmMsg, setConfirmMsg] = useState<string | null>(null);
 
@@ -44,13 +49,30 @@ function SemainesPage() {
         ))}
       </div>
 
-      <button
-        onClick={() => setBatchOpen(true)}
-        className="mb-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-primary/40 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary transition hover:bg-primary/10"
-      >
-        <ChefHat className="size-4" /> Configurer mon batch cooking
-        <Plus className="size-4 opacity-70" />
-      </button>
+      {checkInDone ? (
+        <button
+          onClick={() => setBatchOpen(true)}
+          className="mb-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-primary/40 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary transition hover:bg-primary/10"
+        >
+          <ChefHat className="size-4" /> Configurer mon batch cooking
+          <Plus className="size-4 opacity-70" />
+        </button>
+      ) : (
+        <Link
+          to="/coach"
+          className="mb-4 flex w-full items-start gap-3 rounded-2xl border border-dashed border-accent/50 bg-accent/10 p-4 text-left transition hover:bg-accent/20"
+        >
+          <div className="grid size-9 shrink-0 place-items-center rounded-full bg-accent text-accent-foreground">
+            <MessageCircle className="size-4" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold">Fais d'abord ton check-in avec le Coach</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Quelques questions sur ton énergie, tes entraînements et tes envies — l'IA s'en sert pour générer ton planning. →
+            </p>
+          </div>
+        </Link>
+      )}
 
       {confirmMsg && (
         <div className="mb-4 flex items-start gap-2 rounded-2xl bg-success/15 px-4 py-3 text-success">
@@ -89,11 +111,28 @@ function SemainesPage() {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {jour.repas.map((r) => {
-                  const recette = RECETTES_MAP[r.recette_id];
+                  const recette = getRecette(r.recette_id);
                   const slot =
                     semaine.batch_config && (r.type === "dejeuner" || r.type === "diner")
                       ? semaine.batch_config.assignments[r.type === "dejeuner" ? "dejeuner" : "diner"][jourIdx]
                       : null;
+                  const isLibre =
+                    !!semaine.batch_config &&
+                    (r.type === "dejeuner" || r.type === "diner") &&
+                    (slot === null || slot === undefined);
+                  if (isLibre) {
+                    return (
+                      <div
+                        key={r.type}
+                        className="rounded-xl border border-dashed border-border bg-muted/40 p-2.5 text-left"
+                      >
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/70">
+                          {REPAS_LABELS[r.type]}
+                        </p>
+                        <p className="mt-0.5 text-xs font-medium text-muted-foreground">Repas libre 🌿</p>
+                      </div>
+                    );
+                  }
                   const slotInfo = slot !== null && slot !== undefined ? semaine.batch_config?.recipes[slot] : null;
                   const slotColor = slot !== null && slot !== undefined ? RECIPE_COLORS[slot]?.dot : null;
                   const displayName = slotInfo?.name?.trim() || recette?.nom;
@@ -125,6 +164,19 @@ function SemainesPage() {
             setEditing({ jourIdx: detail.jourIdx, type: detail.repas.type });
             setDetail(null);
           }}
+          onEdit={() => {
+            setEditIng({ jourIdx: detail.jourIdx, repas: detail.repas });
+            setDetail(null);
+          }}
+        />
+      )}
+
+      {editIng && (
+        <RepasEditSheet
+          semaineId={semaine.id}
+          jourIdx={editIng.jourIdx}
+          repas={editIng.repas}
+          onClose={() => setEditIng(null)}
         />
       )}
 
