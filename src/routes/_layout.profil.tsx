@@ -63,6 +63,47 @@ function ProfilPage() {
         </div>
       </section>
 
+      <section className="mb-5 rounded-2xl bg-card p-4 shadow-[var(--shadow-soft)]">
+        <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-muted-foreground">Mesures (Harris–Benedict)</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <NumField label="Âge" value={profil.age} onChange={(v) => setProfil({ age: v })} suffix="ans" />
+          <NumField label="Taille" value={profil.taille_cm} onChange={(v) => setProfil({ taille_cm: v })} suffix="cm" />
+        </div>
+        <div className="mt-3">
+          <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Sexe</p>
+          <div className="flex gap-2">
+            {(["homme", "femme"] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setProfil({ sexe: s })}
+                className={`flex-1 rounded-lg px-3 py-2 text-xs font-medium capitalize transition ${
+                  profil.sexe === s ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="mt-3">
+          <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Niveau d'activité</p>
+          <select
+            value={profil.activite}
+            onChange={(e) => setProfil({ activite: e.target.value as typeof profil.activite })}
+            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+          >
+            <option value="sedentaire">Sédentaire</option>
+            <option value="leger">Léger</option>
+            <option value="moderement_actif">Modérément actif</option>
+            <option value="tres_actif">Très actif</option>
+            <option value="athlete">Athlète</option>
+          </select>
+        </div>
+        <p className="mt-3 rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
+          BMR <b className="text-foreground">{Math.round((profil.sexe === "homme" ? 88.362 + 13.397*profil.poids_kg + 4.799*profil.taille_cm - 5.677*profil.age : 447.593 + 9.247*profil.poids_kg + 3.098*profil.taille_cm - 4.330*profil.age))} kcal</b> · TDEE <b className="text-foreground">{tdee} kcal</b> · Objectif <b className="text-foreground">{profil.objectif_calories_jour} kcal</b>
+        </p>
+      </section>
+
       <section className="mb-5 grid grid-cols-2 gap-3">
         <Stat label="Poids actuel" value={`${profil.poids_kg} kg`} />
         <Stat label="Taille" value={`${profil.taille_cm} cm`} />
