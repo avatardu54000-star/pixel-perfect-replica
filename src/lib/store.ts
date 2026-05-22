@@ -1,7 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { BatchConfig, PoidsEntry, Preferences, Profil, Semaine } from "./types";
-import { genererSemaineBatch, genererSemaineDefaut, startOfWeek } from "./nutrition";
+import type { BatchConfig, IngredientRecette, PoidsEntry, Preferences, Profil, Recette, RepasPlanifie, Semaine } from "./types";
+import { calcTDEE, genererSemaineBatch, genererSemaineDefaut, objectifProteines, startOfWeek } from "./nutrition";
+import { setCustomRecettes } from "./recipeLookup";
 
 const PROFIL_DEFAUT: Profil = {
   nom: "Alex",
@@ -33,12 +34,18 @@ interface State {
   semaines: Semaine[];
   historiquePoids: PoidsEntry[];
   semaineActiveId: string | null;
+  recettesCustom: Recette[];
+  checkInDone: boolean;
   setProfil: (p: Partial<Profil>) => void;
   setPreferences: (p: Partial<Preferences>) => void;
   ajouterSemaine: () => Semaine;
   ajouterSemaineBatch: (cfg: BatchConfig) => Semaine;
   setSemaineActive: (id: string) => void;
   changerRepas: (semaineId: string, jourIndex: number, type: string, recetteId: string) => void;
+  modifierIngredientsRepas: (semaineId: string, jourIndex: number, type: string, ingredients: IngredientRecette[] | undefined) => void;
+  changerRecetteEtIngredients: (semaineId: string, jourIndex: number, type: string, recetteId: string, ingredients: IngredientRecette[] | undefined) => void;
+  sauvegarderRecetteCustom: (recette: Recette) => void;
+  setCheckInDone: (v: boolean) => void;
   ajouterPoids: (poids: number) => void;
 }
 
@@ -57,7 +64,16 @@ export const useApp = create<State>()(
         semaines: init.semaines,
         historiquePoids: [{ date: new Date().toISOString().slice(0, 10), poids: PROFIL_DEFAUT.poids_kg }],
         semaineActiveId: init.activeId,
-        setProfil: (p) => set({ profil: { ...get().profil, ...p } }),
+        recettesCustom: [],
+        checkInDone: false,
+        setProfil: (p) => {
+          const merged = { ...get().profil, ...p } as Profil;
+          const tdee = calcTDEE(merged);
+          const offset = merged.objectif === "seche_musculaire" ? -300 : merged.objectif === "prise_masse" ? 300 : 0;
+          merged.objectif_calories_jour = tdee + offset;
+          merged.objectif_proteines_g = objectifProteines(merged);
+          set({ profil: merged });
+        },
         setPreferences: (p) => set({ preferences: { ...get().preferences, ...p } }),
         ajouterSemaine: () => {
           const sems = get().semaines;
@@ -83,13 +99,49 @@ export const useApp = create<State>()(
             if (s.id !== semaineId) return s;
             const jours = s.jours.map((j, i) => {
               if (i !== jourIndex) return j;
-              const repas = j.repas.map((r) => (r.type === type ? { ...r, recette_id: recetteId } : r));
+              const repas = j.repas.map((r) =>
+                r.type === type ? { ...r, recette_id: recetteId, custom_ingredients: undefined } : r,
+              );
               return { ...j, repas };
             });
             return { ...s, jours };
           });
           set({ semaines: sems });
         },
+        modifierIngredientsRepas: (semaineId, jourIndex, type, ingredients) => {
+          const sems = get().semaines.map((s) => {
+            if (s.id !== semaineId) return s;
+            const jours = s.jours.map((j, i) => {
+              if (i !== jourIndex) return j;
+              const repas = j.repas.map((r) =>
+                r.type === type ? { ...r, custom_ingredients: ingredients } : r,
+              );
+              return { ...j, repas };
+            });
+            return { ...s, jours };
+          });
+          set({ semaines: sems });
+        },
+        changerRecetteEtIngredients: (semaineId, jourIndex, type, recetteId, ingredients) => {
+          const sems = get().semaines.map((s) => {
+            if (s.id !== semaineId) return s;
+            const jours = s.jours.map((j, i) => {
+              if (i !== jourIndex) return j;
+              const repas = j.repas.map((r) =>
+                r.type === type ? { ...r, recette_id: recetteId, custom_ingredients: ingredients } : r,
+              );
+              return { ...j, repas };
+            });
+            return { ...s, jours };
+          });
+          set({ semaines: sems });
+        },
+        sauvegarderRecetteCustom: (recette) => {
+          const list = [...get().recettesCustom.filter((r) => r.id !== recette.id), recette];
+          setCustomRecettes(list);
+          set({ recettesCustom: list });
+        },
+        setCheckInDone: (v) => set({ checkInDone: v }),
         ajouterPoids: (poids) => {
           const date = new Date().toISOString().slice(0, 10);
           const hist = [...get().historiquePoids.filter((e) => e.date !== date), { date, poids }];
@@ -97,7 +149,12 @@ export const useApp = create<State>()(
         },
       };
     },
-    { name: "myfuelapp-v1" },
+    {
+      name: "myfuelapp-v1",
+      onRehydrateStorage: () => (state) => {
+        if (state?.recettesCustom) setCustomRecettes(state.recettesCustom);
+      },
+    },
   ),
 );
 
