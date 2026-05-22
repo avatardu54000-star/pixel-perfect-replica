@@ -3,7 +3,7 @@ import { AppShell } from "@/components/app/AppShell";
 import { MacroRing } from "@/components/app/MacroRing";
 import { useApp, useSemaineActive } from "@/lib/store";
 import { JOURS_LABELS, macrosJour, REPAS_LABELS } from "@/lib/nutrition";
-import { RECETTES_MAP } from "@/data/recettes";
+import { getRecette } from "@/lib/recipeLookup";
 import { FICHES } from "@/data/education";
 import { Sparkles, TrendingUp } from "lucide-react";
 import { useState } from "react";
@@ -62,7 +62,7 @@ function Dashboard() {
         <h2 className="mb-3 text-lg">Tes repas du jour</h2>
         <div className="space-y-3">
           {jourAuj.repas.map((r) => {
-            const recette = RECETTES_MAP[r.recette_id];
+            const recette = getRecette(r.recette_id);
             return (
               <button
                 key={r.type}

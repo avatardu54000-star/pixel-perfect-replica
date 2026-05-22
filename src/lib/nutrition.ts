@@ -1,6 +1,7 @@
-import type { Aliment, BatchConfig, JourPlanifie, Profil, RepasPlanifie, Semaine } from "./types";
+import type { Aliment, BatchConfig, IngredientRecette, JourPlanifie, Profil, RepasPlanifie, Semaine } from "./types";
 import { ALIMENTS_MAP } from "@/data/aliments";
 import { RECETTES, RECETTES_MAP } from "@/data/recettes";
+import { getRecette } from "./recipeLookup";
 
 export const ACTIVITE_FACTEURS: Record<Profil["activite"], number> = {
   sedentaire: 1.2,
@@ -54,7 +55,7 @@ export function macrosIngredient(aliment: Aliment, grammes: number): MacrosCalc 
 }
 
 export function macrosRecette(recetteId: string, portions = 1): MacrosCalc {
-  const r = RECETTES_MAP[recetteId];
+  const r = getRecette(recetteId);
   if (!r) return EMPTY_MACROS;
   let total = EMPTY_MACROS;
   for (const ing of r.ingredients) {
@@ -65,8 +66,24 @@ export function macrosRecette(recetteId: string, portions = 1): MacrosCalc {
   return total;
 }
 
+export function resolveIngredients(r: RepasPlanifie): IngredientRecette[] {
+  if (r.custom_ingredients) return r.custom_ingredients;
+  const rec = getRecette(r.recette_id);
+  return rec?.ingredients ?? [];
+}
+
+export function macrosRepasPlanifie(r: RepasPlanifie): MacrosCalc {
+  let total = EMPTY_MACROS;
+  for (const ing of resolveIngredients(r)) {
+    const a = ALIMENTS_MAP[ing.aliment_id];
+    if (!a) continue;
+    total = addMacros(total, macrosIngredient(a, ing.quantite_g_par_portion * r.portions));
+  }
+  return total;
+}
+
 export function macrosRepas(repas: RepasPlanifie[]): MacrosCalc {
-  return repas.reduce((acc, r) => addMacros(acc, macrosRecette(r.recette_id, r.portions)), EMPTY_MACROS);
+  return repas.reduce((acc, r) => addMacros(acc, macrosRepasPlanifie(r)), EMPTY_MACROS);
 }
 
 export function macrosJour(jour: JourPlanifie) {
@@ -77,9 +94,7 @@ export function prixSemaine(semaine: Semaine): number {
   let total = 0;
   for (const j of semaine.jours) {
     for (const r of j.repas) {
-      const recette = RECETTES_MAP[r.recette_id];
-      if (!recette) continue;
-      for (const ing of recette.ingredients) {
+      for (const ing of resolveIngredients(r)) {
         const a = ALIMENTS_MAP[ing.aliment_id];
         if (!a) continue;
         total += (ing.quantite_g_par_portion * r.portions / 1000) * a.prix_kg_estime;
@@ -99,9 +114,7 @@ export function listeCourses(semaine: Semaine): ListeCoursesItem[] {
   const map = new Map<string, ListeCoursesItem>();
   for (const j of semaine.jours) {
     for (const r of j.repas) {
-      const recette = RECETTES_MAP[r.recette_id];
-      if (!recette) continue;
-      for (const ing of recette.ingredients) {
+      for (const ing of resolveIngredients(r)) {
         const a = ALIMENTS_MAP[ing.aliment_id];
         if (!a) continue;
         const q = ing.quantite_g_par_portion * r.portions;

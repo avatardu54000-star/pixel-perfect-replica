@@ -48,6 +48,8 @@ export interface RepasPlanifie {
   type: TypeRepas;
   recette_id: string;
   portions: number;
+  /** Ingredients override (uniquement pour cette occurrence dans la semaine). */
+  custom_ingredients?: IngredientRecette[];
 }
 
 export interface JourPlanifie {

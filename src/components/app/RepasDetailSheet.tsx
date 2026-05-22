@@ -1,19 +1,22 @@
-import { X, Replace, Clock, Flame } from "lucide-react";
+import { X, Replace, Clock, Flame, Pencil } from "lucide-react";
 import { ALIMENTS_MAP } from "@/data/aliments";
-import { RECETTES_MAP } from "@/data/recettes";
-import { macrosIngredient, macrosRecette, REPAS_LABELS } from "@/lib/nutrition";
+import { getRecette } from "@/lib/recipeLookup";
+import { macrosIngredient, macrosRepasPlanifie, resolveIngredients, REPAS_LABELS } from "@/lib/nutrition";
 import type { RepasPlanifie } from "@/lib/types";
 
 interface Props {
   repas: RepasPlanifie;
   onClose: () => void;
   onReplace?: () => void;
+  onEdit?: () => void;
 }
 
-export function RepasDetailSheet({ repas, onClose, onReplace }: Props) {
-  const recette = RECETTES_MAP[repas.recette_id];
+export function RepasDetailSheet({ repas, onClose, onReplace, onEdit }: Props) {
+  const recette = getRecette(repas.recette_id);
   if (!recette) return null;
-  const total = macrosRecette(recette.id, repas.portions);
+  const total = macrosRepasPlanifie(repas);
+  const ingredients = resolveIngredients(repas);
+  const modifiee = !!repas.custom_ingredients;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end bg-black/50 backdrop-blur-sm" onClick={onClose}>
@@ -28,6 +31,7 @@ export function RepasDetailSheet({ repas, onClose, onReplace }: Props) {
             </p>
             <h2 className="mt-1 truncate font-display text-2xl">
               {recette.emoji} {recette.nom}
+              {modifiee && <span className="ml-2 align-middle text-[10px] font-semibold uppercase tracking-wider text-accent-foreground">· modifiée</span>}
             </h2>
             <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1"><Clock className="size-3" /> {recette.temps_total_minutes} min</span>
@@ -51,7 +55,7 @@ export function RepasDetailSheet({ repas, onClose, onReplace }: Props) {
               Ingrédients ({repas.portions} portion{repas.portions > 1 ? "s" : ""})
             </h3>
             <ul className="divide-y divide-border overflow-hidden rounded-2xl bg-muted/40">
-              {recette.ingredients.map((ing) => {
+              {ingredients.map((ing) => {
                 const a = ALIMENTS_MAP[ing.aliment_id];
                 if (!a) return null;
                 const grammes = Math.round(ing.quantite_g_par_portion * repas.portions);
@@ -94,14 +98,24 @@ export function RepasDetailSheet({ repas, onClose, onReplace }: Props) {
             </section>
           )}
 
-          {onReplace && (
-            <button
-              onClick={onReplace}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/40 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary transition hover:bg-primary/10"
-            >
-              <Replace className="size-4" /> Remplacer ce repas
-            </button>
-          )}
+          <div className="grid gap-2">
+            {onEdit && (
+              <button
+                onClick={onEdit}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-warm)]"
+              >
+                <Pencil className="size-4" /> Modifier la recette
+              </button>
+            )}
+            {onReplace && (
+              <button
+                onClick={onReplace}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/40 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary transition hover:bg-primary/10"
+              >
+                <Replace className="size-4" /> Remplacer par une autre recette
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

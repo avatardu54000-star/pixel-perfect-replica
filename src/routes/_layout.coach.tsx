@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/app/AppShell";
 import { useState } from "react";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, ChefHat, RotateCcw } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { useApp } from "@/lib/store";
 
 export const Route = createFileRoute("/_layout/coach")({
   component: CoachPage,
@@ -37,6 +39,8 @@ const FINAL =
 interface Msg { role: "coach" | "user"; text: string; }
 
 function CoachPage() {
+  const checkInDone = useApp((s) => s.checkInDone);
+  const setCheckInDone = useApp((s) => s.setCheckInDone);
   const [msgs, setMsgs] = useState<Msg[]>([
     { role: "coach", text: "Salut ! C'est l'heure du check-in hebdo 💪 Prêt·e à faire le point ensemble ?" },
     { role: "coach", text: QUESTIONS[0] },
@@ -62,15 +66,48 @@ function CoachPage() {
     } else {
       await new Promise((r) => setTimeout(r, 500));
       replies.push({ role: "coach", text: FINAL });
+      setCheckInDone(true);
     }
     setMsgs((prev) => [...prev, ...replies]);
     setStep(nextStep);
     setLoading(false);
   };
 
+  const reset = () => {
+    setMsgs([
+      { role: "coach", text: "On refait un point ? 💬" },
+      { role: "coach", text: QUESTIONS[0] },
+    ]);
+    setStep(0);
+    setCheckInDone(false);
+  };
+  const finished = step >= QUESTIONS.length;
+
   return (
     <AppShell title="Coach IA" subtitle="Check-in hebdomadaire, sans jugement">
       <div className="space-y-3 pb-20">
+        {checkInDone && (
+          <div className="rounded-2xl border border-success/30 bg-success/10 p-4 text-success">
+            <p className="text-xs font-bold uppercase tracking-wider opacity-80">Check-in terminé ✅</p>
+            <p className="mt-1 text-sm leading-snug">
+              Ton planning peut maintenant être généré selon tes réponses.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Link
+                to="/semaines"
+                className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
+              >
+                <ChefHat className="size-3.5" /> Configurer mon batch cooking
+              </Link>
+              <button
+                onClick={reset}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground"
+              >
+                <RotateCcw className="size-3.5" /> Refaire le check-in
+              </button>
+            </div>
+          </div>
+        )}
         {msgs.map((m, i) => (
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
             <div
@@ -93,7 +130,7 @@ function CoachPage() {
           </div>
         )}
       </div>
-      <div className="fixed inset-x-0 bottom-16 z-40 border-t border-border bg-card/95 px-4 py-3 backdrop-blur">
+      {!finished && <div className="fixed inset-x-0 bottom-16 z-40 border-t border-border bg-card/95 px-4 py-3 backdrop-blur">
         <div className="mx-auto flex max-w-md gap-2">
           <input
             value={input}
@@ -107,7 +144,7 @@ function CoachPage() {
             {loading ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
           </button>
         </div>
-      </div>
+      </div>}
     </AppShell>
   );
 }
