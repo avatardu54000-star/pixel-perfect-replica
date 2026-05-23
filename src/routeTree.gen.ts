@@ -15,6 +15,7 @@ import { Route as LayoutSemainesRouteImport } from './routes/_layout.semaines'
 import { Route as LayoutProfilRouteImport } from './routes/_layout.profil'
 import { Route as LayoutCoursesRouteImport } from './routes/_layout.courses'
 import { Route as LayoutCoachRouteImport } from './routes/_layout.coach'
+import { Route as LayoutAlimentsRouteImport } from './routes/_layout.aliments'
 
 const LayoutRoute = LayoutRouteImport.update({
   id: '/_layout',
@@ -45,15 +46,22 @@ const LayoutCoachRoute = LayoutCoachRouteImport.update({
   path: '/coach',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutAlimentsRoute = LayoutAlimentsRouteImport.update({
+  id: '/aliments',
+  path: '/aliments',
+  getParentRoute: () => LayoutRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof LayoutIndexRoute
+  '/aliments': typeof LayoutAlimentsRoute
   '/coach': typeof LayoutCoachRoute
   '/courses': typeof LayoutCoursesRoute
   '/profil': typeof LayoutProfilRoute
   '/semaines': typeof LayoutSemainesRoute
 }
 export interface FileRoutesByTo {
+  '/aliments': typeof LayoutAlimentsRoute
   '/coach': typeof LayoutCoachRoute
   '/courses': typeof LayoutCoursesRoute
   '/profil': typeof LayoutProfilRoute
@@ -63,6 +71,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_layout': typeof LayoutRouteWithChildren
+  '/_layout/aliments': typeof LayoutAlimentsRoute
   '/_layout/coach': typeof LayoutCoachRoute
   '/_layout/courses': typeof LayoutCoursesRoute
   '/_layout/profil': typeof LayoutProfilRoute
@@ -71,12 +80,13 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/coach' | '/courses' | '/profil' | '/semaines'
+  fullPaths: '/' | '/aliments' | '/coach' | '/courses' | '/profil' | '/semaines'
   fileRoutesByTo: FileRoutesByTo
-  to: '/coach' | '/courses' | '/profil' | '/semaines' | '/'
+  to: '/aliments' | '/coach' | '/courses' | '/profil' | '/semaines' | '/'
   id:
     | '__root__'
     | '/_layout'
+    | '/_layout/aliments'
     | '/_layout/coach'
     | '/_layout/courses'
     | '/_layout/profil'
@@ -132,10 +142,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutCoachRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/aliments': {
+      id: '/_layout/aliments'
+      path: '/aliments'
+      fullPath: '/aliments'
+      preLoaderRoute: typeof LayoutAlimentsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
   }
 }
 
 interface LayoutRouteChildren {
+  LayoutAlimentsRoute: typeof LayoutAlimentsRoute
   LayoutCoachRoute: typeof LayoutCoachRoute
   LayoutCoursesRoute: typeof LayoutCoursesRoute
   LayoutProfilRoute: typeof LayoutProfilRoute
@@ -144,6 +162,7 @@ interface LayoutRouteChildren {
 }
 
 const LayoutRouteChildren: LayoutRouteChildren = {
+  LayoutAlimentsRoute: LayoutAlimentsRoute,
   LayoutCoachRoute: LayoutCoachRoute,
   LayoutCoursesRoute: LayoutCoursesRoute,
   LayoutProfilRoute: LayoutProfilRoute,

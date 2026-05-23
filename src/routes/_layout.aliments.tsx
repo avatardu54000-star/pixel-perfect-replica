@@ -1,0 +1,306 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { Apple, Plus, Search, Sparkles, Trash2 } from "lucide-react";
+import { AppShell } from "@/components/app/AppShell";
+import { ALIMENTS } from "@/data/aliments";
+import { useApp } from "@/lib/store";
+import type { Aliment, CategorieAliment } from "@/lib/types";
+
+export const Route = createFileRoute("/_layout/aliments")({
+  component: AlimentsPage,
+});
+
+type Tab = "base" | "mine" | "add";
+
+const CATEGORIES: { id: CategorieAliment; label: string; emoji: string }[] = [
+  { id: "viande", label: "Viandes", emoji: "🥩" },
+  { id: "poisson", label: "Poissons", emoji: "🐟" },
+  { id: "laitier", label: "Laitiers", emoji: "🥛" },
+  { id: "feculents", label: "Féculents", emoji: "🌾" },
+  { id: "legumes", label: "Légumes", emoji: "🥦" },
+  { id: "fruits", label: "Fruits", emoji: "🍎" },
+  { id: "epicerie", label: "Épicerie", emoji: "🫙" },
+  { id: "custom", label: "Custom", emoji: "✨" },
+];
+
+function AlimentsPage() {
+  const [tab, setTab] = useState<Tab>("base");
+  const customs = useApp((s) => s.alimentsCustom);
+
+  return (
+    <AppShell title="Aliments" subtitle="Ta base alimentaire">
+      <div className="mb-4 grid grid-cols-3 gap-1 rounded-2xl bg-muted p-1 text-sm font-medium">
+        <TabBtn active={tab === "base"} onClick={() => setTab("base")}>Base</TabBtn>
+        <TabBtn active={tab === "mine"} onClick={() => setTab("mine")}>
+          Mes produits {customs.length > 0 && <span className="ml-1 rounded-full bg-primary/15 px-1.5 text-[10px] text-primary">{customs.length}</span>}
+        </TabBtn>
+        <TabBtn active={tab === "add"} onClick={() => setTab("add")}>Ajouter</TabBtn>
+      </div>
+
+      {tab === "base" && <BaseTab />}
+      {tab === "mine" && <MineTab />}
+      {tab === "add" && <AddTab onSaved={() => setTab("mine")} />}
+    </AppShell>
+  );
+}
+
+function TabBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`rounded-xl px-2 py-2 transition ${active ? "bg-card text-foreground shadow-[var(--shadow-soft)]" : "text-muted-foreground"}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function BaseTab() {
+  const [q, setQ] = useState("");
+  const [cat, setCat] = useState<CategorieAliment | "all">("all");
+
+  const list = useMemo(() => {
+    const ql = q.toLowerCase();
+    return ALIMENTS.filter((a) => (cat === "all" || a.categorie === cat) && a.nom.toLowerCase().includes(ql));
+  }, [q, cat]);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 rounded-xl bg-card px-3 py-2 shadow-[var(--shadow-soft)]">
+        <Search className="size-4 text-muted-foreground" />
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Chercher un aliment…"
+          className="flex-1 bg-transparent text-sm outline-none"
+        />
+      </div>
+
+      <div className="flex gap-1.5 overflow-x-auto pb-1">
+        <Chip active={cat === "all"} onClick={() => setCat("all")}>Tout</Chip>
+        {CATEGORIES.filter((c) => c.id !== "custom").map((c) => (
+          <Chip key={c.id} active={cat === c.id} onClick={() => setCat(c.id)}>
+            {c.emoji} {c.label}
+          </Chip>
+        ))}
+      </div>
+
+      <p className="text-[11px] text-muted-foreground">{list.length} aliments</p>
+      <div className="space-y-2">
+        {list.map((a) => <AlimentRow key={a.id} a={a} />)}
+      </div>
+    </div>
+  );
+}
+
+function MineTab() {
+  const customs = useApp((s) => s.alimentsCustom);
+  const supprimer = useApp((s) => s.supprimerAlimentCustom);
+
+  if (customs.length === 0) {
+    return (
+      <div className="rounded-2xl border-2 border-dashed border-border p-8 text-center">
+        <Apple className="mx-auto size-8 text-muted-foreground" />
+        <p className="mt-3 text-sm font-semibold">Aucun produit perso</p>
+        <p className="mt-1 text-xs text-muted-foreground">Ajoute tes propres aliments depuis l'onglet « Ajouter ».</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {customs.map((a) => <AlimentRow key={a.id} a={a} onDelete={() => supprimer(a.id)} />)}
+    </div>
+  );
+}
+
+function AlimentRow({ a, onDelete }: { a: Aliment; onDelete?: () => void }) {
+  const ratio = a.pour_100g.kcal > 0 ? (a.pour_100g.proteines / a.pour_100g.kcal) * 100 : 0;
+  return (
+    <div className="flex items-center gap-3 rounded-2xl bg-card p-3 shadow-[var(--shadow-soft)]">
+      <div className="grid size-10 place-items-center rounded-xl bg-primary/10 text-lg">
+        {CATEGORIES.find((c) => c.id === a.categorie)?.emoji ?? "🍽️"}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold">{a.nom}{a.marque && <span className="ml-1 text-xs text-muted-foreground">· {a.marque}</span>}</p>
+        <p className="text-[10px] tabular-nums text-muted-foreground">
+          {Math.round(a.pour_100g.kcal)} kcal · P {a.pour_100g.proteines}g · G {a.pour_100g.glucides}g · L {a.pour_100g.lipides}g
+        </p>
+      </div>
+      <div className="text-right">
+        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">P/kcal</p>
+        <p className="font-display text-sm tabular-nums">{ratio.toFixed(1)}</p>
+      </div>
+      {onDelete && (
+        <button onClick={onDelete} className="grid size-8 place-items-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive" aria-label="Supprimer">
+          <Trash2 className="size-4" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition ${active ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function AddTab({ onSaved }: { onSaved: () => void }) {
+  const ajouter = useApp((s) => s.ajouterAlimentCustom);
+  const [nom, setNom] = useState("");
+  const [marque, setMarque] = useState("");
+  const [categorie, setCategorie] = useState<CategorieAliment>("custom");
+  const [kcal, setKcal] = useState("");
+  const [proteines, setProteines] = useState("");
+  const [glucides, setGlucides] = useState("");
+  const [lipides, setLipides] = useState("");
+  const [fibres, setFibres] = useState("");
+  const [prix, setPrix] = useState("");
+
+  const num = (v: string) => {
+    const n = parseFloat(v.replace(",", "."));
+    return isFinite(n) ? n : 0;
+  };
+
+  const preview = useMemo(() => {
+    const k = num(kcal);
+    const p = num(proteines);
+    const ratio = k > 0 ? (p / k) * 100 : 0;
+    let score: { label: string; tone: string };
+    if (ratio >= 8) score = { label: "Excellent", tone: "bg-emerald-500/15 text-emerald-700" };
+    else if (ratio >= 5) score = { label: "Bon", tone: "bg-primary/15 text-primary" };
+    else if (ratio >= 2) score = { label: "Moyen", tone: "bg-amber-500/15 text-amber-700" };
+    else score = { label: "Faible", tone: "bg-muted text-muted-foreground" };
+    return { ratio, score };
+  }, [kcal, proteines]);
+
+  const canSave = nom.trim().length > 1 && num(kcal) >= 0 && num(proteines) >= 0;
+
+  const handleSave = () => {
+    if (!canSave) return;
+    const aliment: Aliment = {
+      id: `usr_${crypto.randomUUID().slice(0, 8)}`,
+      nom: nom.trim(),
+      marque: marque.trim() || undefined,
+      categorie,
+      pour_100g: {
+        kcal: num(kcal),
+        proteines: num(proteines),
+        glucides: num(glucides),
+        lipides: num(lipides),
+        fibres: fibres ? num(fibres) : undefined,
+      },
+      prix_kg_estime: num(prix),
+      custom: true,
+    };
+    ajouter(aliment);
+    setNom(""); setMarque(""); setKcal(""); setProteines(""); setGlucides(""); setLipides(""); setFibres(""); setPrix("");
+    onSaved();
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl bg-card p-4 shadow-[var(--shadow-soft)] space-y-3">
+        <Field label="Nom *" value={nom} onChange={setNom} placeholder="Ex. Yaourt Skyr Lidl" />
+        <Field label="Marque" value={marque} onChange={setMarque} placeholder="Ex. Milbona" />
+        <div>
+          <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Catégorie</label>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {CATEGORIES.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => setCategorie(c.id)}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${categorie === c.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+              >
+                {c.emoji} {c.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl bg-card p-4 shadow-[var(--shadow-soft)] space-y-3">
+        <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Pour 100 g</p>
+        <div className="grid grid-cols-2 gap-2">
+          <NumField label="Kcal" value={kcal} onChange={setKcal} />
+          <NumField label="Protéines (g)" value={proteines} onChange={setProteines} />
+          <NumField label="Glucides (g)" value={glucides} onChange={setGlucides} />
+          <NumField label="Lipides (g)" value={lipides} onChange={setLipides} />
+          <NumField label="Fibres (g)" value={fibres} onChange={setFibres} />
+          <NumField label="Prix €/kg" value={prix} onChange={setPrix} />
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-gradient-to-br from-primary/5 to-accent/10 p-4">
+        <p className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-primary">
+          <Sparkles className="size-3" /> Aperçu en temps réel
+        </p>
+        <div className="mt-3 grid grid-cols-4 gap-2 text-center">
+          <Mini label="Kcal" value={Math.round(num(kcal))} />
+          <Mini label="P" value={`${num(proteines)}g`} />
+          <Mini label="G" value={`${num(glucides)}g`} />
+          <Mini label="L" value={`${num(lipides)}g`} />
+        </div>
+        <div className="mt-3 flex items-center justify-between rounded-xl bg-card/70 p-3">
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Ratio protéines / kcal</p>
+            <p className="font-display text-2xl tabular-nums">{preview.ratio.toFixed(1)}<span className="ml-1 text-xs text-muted-foreground">g / 100 kcal</span></p>
+          </div>
+          <span className={`rounded-full px-3 py-1 text-xs font-bold ${preview.score.tone}`}>{preview.score.label}</span>
+        </div>
+      </div>
+
+      <button
+        onClick={handleSave}
+        disabled={!canSave}
+        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-warm)] disabled:opacity-50"
+      >
+        <Plus className="size-4" /> Sauvegarder l'aliment
+      </button>
+    </div>
+  );
+}
+
+function Field({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
+  return (
+    <div>
+      <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{label}</label>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+      />
+    </div>
+  );
+}
+
+function NumField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</label>
+      <input
+        inputMode="decimal"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="0"
+        className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm tabular-nums outline-none focus:border-primary"
+      />
+    </div>
+  );
+}
+
+function Mini({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div>
+      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="mt-0.5 font-display text-lg tabular-nums">{value}</p>
+    </div>
+  );
+}

@@ -1,8 +1,9 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { BatchConfig, IngredientRecette, PoidsEntry, Preferences, Profil, Recette, RepasPlanifie, Semaine } from "./types";
+import type { Aliment, BatchConfig, IngredientRecette, PoidsEntry, Preferences, Profil, Recette, Semaine } from "./types";
 import { calcTDEE, genererSemaineBatch, genererSemaineDefaut, objectifProteines, startOfWeek } from "./nutrition";
 import { setCustomRecettes } from "./recipeLookup";
+import { setCustomAliments } from "./alimentLookup";
 
 const PROFIL_DEFAUT: Profil = {
   nom: "Alex",
@@ -35,6 +36,7 @@ interface State {
   historiquePoids: PoidsEntry[];
   semaineActiveId: string | null;
   recettesCustom: Recette[];
+  alimentsCustom: Aliment[];
   checkInDone: boolean;
   setProfil: (p: Partial<Profil>) => void;
   setPreferences: (p: Partial<Preferences>) => void;
@@ -45,6 +47,8 @@ interface State {
   modifierIngredientsRepas: (semaineId: string, jourIndex: number, type: string, ingredients: IngredientRecette[] | undefined) => void;
   changerRecetteEtIngredients: (semaineId: string, jourIndex: number, type: string, recetteId: string, ingredients: IngredientRecette[] | undefined) => void;
   sauvegarderRecetteCustom: (recette: Recette) => void;
+  ajouterAlimentCustom: (a: Aliment) => void;
+  supprimerAlimentCustom: (id: string) => void;
   setCheckInDone: (v: boolean) => void;
   ajouterPoids: (poids: number) => void;
 }
@@ -65,6 +69,7 @@ export const useApp = create<State>()(
         historiquePoids: [{ date: new Date().toISOString().slice(0, 10), poids: PROFIL_DEFAUT.poids_kg }],
         semaineActiveId: init.activeId,
         recettesCustom: [],
+        alimentsCustom: [],
         checkInDone: false,
         setProfil: (p) => {
           const merged = { ...get().profil, ...p } as Profil;
@@ -141,6 +146,16 @@ export const useApp = create<State>()(
           setCustomRecettes(list);
           set({ recettesCustom: list });
         },
+        ajouterAlimentCustom: (a) => {
+          const list = [...get().alimentsCustom.filter((x) => x.id !== a.id), a];
+          setCustomAliments(list);
+          set({ alimentsCustom: list });
+        },
+        supprimerAlimentCustom: (id) => {
+          const list = get().alimentsCustom.filter((x) => x.id !== id);
+          setCustomAliments(list);
+          set({ alimentsCustom: list });
+        },
         setCheckInDone: (v) => set({ checkInDone: v }),
         ajouterPoids: (poids) => {
           const date = new Date().toISOString().slice(0, 10);
@@ -153,6 +168,7 @@ export const useApp = create<State>()(
       name: "myfuelapp-v1",
       onRehydrateStorage: () => (state) => {
         if (state?.recettesCustom) setCustomRecettes(state.recettesCustom);
+        if (state?.alimentsCustom) setCustomAliments(state.alimentsCustom);
       },
     },
   ),

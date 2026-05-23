@@ -18,6 +18,7 @@ export function RepasEditSheet({ semaineId, jourIdx, repas, onClose }: Props) {
   const modifierIngredients = useApp((s) => s.modifierIngredientsRepas);
   const changerEt = useApp((s) => s.changerRecetteEtIngredients);
   const sauvegarderRecette = useApp((s) => s.sauvegarderRecetteCustom);
+  const alimentsCustom = useApp((s) => s.alimentsCustom);
 
   const initial: IngredientRecette[] = (repas.custom_ingredients ?? baseRecette?.ingredients ?? []).map((i) => ({ ...i }));
   const [ings, setIngs] = useState<IngredientRecette[]>(initial);
@@ -71,9 +72,9 @@ export function RepasEditSheet({ semaineId, jourIdx, repas, onClose }: Props) {
     onClose();
   };
 
-  const candidates = ALIMENTS.filter((a) =>
-    a.nom.toLowerCase().includes(search.toLowerCase()),
-  ).slice(0, 30);
+  const candidates = [...ALIMENTS, ...alimentsCustom]
+    .filter((a) => a.nom.toLowerCase().includes(search.toLowerCase()))
+    .slice(0, 40);
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end bg-black/50 backdrop-blur-sm" onClick={onClose}>
