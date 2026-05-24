@@ -24,7 +24,9 @@ function greeting() {
 function Dashboard() {
   const profil = useApp((s) => s.profil);
   const semaine = useSemaineActive();
-  const todayIdx = Math.max(0, Math.min(6, (new Date().getDay() + 6) % 7));
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const idxByDate = semaine.jours.findIndex((j) => j.date.slice(0, 10) === todayISO);
+  const todayIdx = idxByDate >= 0 ? idxByDate : Math.max(0, Math.min(6, (new Date().getDay() + 6) % 7));
   const jourAuj = semaine.jours[todayIdx];
   const macros = macrosJour(jourAuj);
   const fiche = FICHES[new Date().getDate() % FICHES.length];
@@ -62,7 +64,32 @@ function Dashboard() {
         <h2 className="mb-3 text-lg">Tes repas du jour</h2>
         <div className="space-y-3">
           {jourAuj.repas.map((r) => {
+            const slot =
+              semaine.batch_config && (r.type === "dejeuner" || r.type === "diner")
+                ? semaine.batch_config.assignments[r.type === "dejeuner" ? "dejeuner" : "diner"][todayIdx]
+                : null;
+            const isLibre =
+              !!semaine.batch_config &&
+              (r.type === "dejeuner" || r.type === "diner") &&
+              (slot === null || slot === undefined);
+            if (isLibre) {
+              return (
+                <div
+                  key={r.type}
+                  className="flex w-full items-center gap-3 rounded-2xl border border-dashed border-border bg-muted/40 p-4"
+                >
+                  <div className="grid size-12 place-items-center rounded-xl bg-background text-2xl">🌿</div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{REPAS_LABELS[r.type]}</p>
+                    <p className="truncate font-semibold text-muted-foreground">Repas libre 🌿</p>
+                    <p className="text-xs text-muted-foreground/70">À improviser selon tes envies</p>
+                  </div>
+                </div>
+              );
+            }
             const recette = getRecette(r.recette_id);
+            const slotInfo = slot !== null && slot !== undefined ? semaine.batch_config?.recipes[slot] : null;
+            const displayName = slotInfo?.name?.trim() || recette?.nom;
             return (
               <button
                 key={r.type}
@@ -72,7 +99,7 @@ function Dashboard() {
                 <div className="grid size-12 place-items-center rounded-xl bg-muted text-2xl">{recette?.emoji}</div>
                 <div className="min-w-0 flex-1">
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">{REPAS_LABELS[r.type]}</p>
-                  <p className="truncate font-semibold">{recette?.nom}</p>
+                  <p className="truncate font-semibold">{displayName}</p>
                   <p className="text-xs text-muted-foreground">{recette?.temps_total_minutes} min · {recette?.cuisine}</p>
                 </div>
               </button>
