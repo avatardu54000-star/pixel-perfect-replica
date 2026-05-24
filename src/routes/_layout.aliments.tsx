@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Apple, Plus, Search, Sparkles, Trash2 } from "lucide-react";
+import { Apple, Loader2, Plus, Search, Sparkles, Trash2, Wand2 } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { lookupAliment, type AiAlimentResult } from "@/lib/alimentAi.functions";
 import { AppShell } from "@/components/app/AppShell";
 import { ALIMENTS } from "@/data/aliments";
 import { useApp } from "@/lib/store";
@@ -58,11 +60,54 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
 function BaseTab() {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<CategorieAliment | "all">("all");
+  const customs = useApp((s) => s.alimentsCustom);
+  const ajouter = useApp((s) => s.ajouterAlimentCustom);
+  const lookupFn = useServerFn(lookupAliment);
+  const [aiState, setAiState] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [aiResult, setAiResult] = useState<AiAlimentResult | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiAdded, setAiAdded] = useState(false);
 
   const list = useMemo(() => {
     const ql = q.toLowerCase();
     return ALIMENTS.filter((a) => (cat === "all" || a.categorie === cat) && a.nom.toLowerCase().includes(ql));
   }, [q, cat]);
+
+  const showAi = q.trim().length > 1 && list.length === 0;
+
+  const resetAi = () => {
+    setAiState("idle"); setAiResult(null); setAiError(null); setAiAdded(false);
+  };
+
+  const runAi = async () => {
+    setAiState("loading"); setAiError(null); setAiResult(null); setAiAdded(false);
+    try {
+      const r = await lookupFn({ data: { query: q.trim() } });
+      setAiResult(r); setAiState("done");
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : "Erreur inconnue"); setAiState("error");
+    }
+  };
+
+  const ajouterAi = () => {
+    if (!aiResult) return;
+    const a: Aliment = {
+      id: `usr_${crypto.randomUUID().slice(0, 8)}`,
+      nom: aiResult.nom,
+      categorie: aiResult.categorie,
+      pour_100g: {
+        kcal: Math.round(aiResult.kcal),
+        proteines: Math.round(aiResult.proteines * 10) / 10,
+        glucides: Math.round(aiResult.glucides * 10) / 10,
+        lipides: Math.round(aiResult.lipides * 10) / 10,
+        fibres: Math.round((aiResult.fibres ?? 0) * 10) / 10,
+      },
+      prix_kg_estime: Math.round((aiResult.prix_kg_estime ?? 0) * 100) / 100,
+      custom: true,
+    };
+    ajouter(a);
+    setAiAdded(true);
+  };
 
   return (
     <div className="space-y-3">
@@ -70,7 +115,7 @@ function BaseTab() {
         <Search className="size-4 text-muted-foreground" />
         <input
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={(e) => { setQ(e.target.value); resetAi(); }}
           placeholder="Chercher un aliment…"
           className="flex-1 bg-transparent text-sm outline-none"
         />
@@ -89,6 +134,57 @@ function BaseTab() {
       <div className="space-y-2">
         {list.map((a) => <AlimentRow key={a.id} a={a} />)}
       </div>
+
+      {showAi && (
+        <div className="rounded-2xl border border-dashed border-primary/40 bg-primary/5 p-4 text-center">
+          <Sparkles className="mx-auto size-6 text-primary" />
+          <p className="mt-2 text-sm font-semibold">Aucun résultat pour « {q.trim()} »</p>
+          <p className="mt-1 text-xs text-muted-foreground">Demande à l'IA de récupérer les valeurs nutritionnelles pour 100 g.</p>
+
+          {aiState !== "done" && (
+            <button
+              onClick={runAi}
+              disabled={aiState === "loading"}
+              className="mt-3 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-[var(--shadow-warm)] disabled:opacity-60"
+            >
+              {aiState === "loading" ? <Loader2 className="size-3.5 animate-spin" /> : <Wand2 className="size-3.5" />}
+              {aiState === "loading" ? "L'IA cherche…" : "Rechercher avec l'IA"}
+            </button>
+          )}
+
+          {aiState === "error" && (
+            <p className="mt-3 rounded-lg bg-destructive/10 px-3 py-2 text-left text-xs text-destructive">{aiError}</p>
+          )}
+
+          {aiState === "done" && aiResult && (
+            <div className="mt-4 rounded-xl bg-card p-3 text-left shadow-[var(--shadow-soft)]">
+              <p className="text-sm font-semibold">{aiResult.nom}</p>
+              {aiResult.note && <p className="text-[11px] text-muted-foreground">{aiResult.note}</p>}
+              <div className="mt-2 grid grid-cols-5 gap-1 text-center">
+                <Mini label="Kcal" value={Math.round(aiResult.kcal)} />
+                <Mini label="P" value={`${aiResult.proteines}g`} />
+                <Mini label="G" value={`${aiResult.glucides}g`} />
+                <Mini label="L" value={`${aiResult.lipides}g`} />
+                <Mini label="Fib" value={`${aiResult.fibres}g`} />
+              </div>
+              <p className="mt-2 text-[10px] text-muted-foreground">Prix estimé · {aiResult.prix_kg_estime} €/kg</p>
+              {aiAdded ? (
+                <p className="mt-3 rounded-lg bg-emerald-500/15 px-3 py-2 text-center text-xs font-semibold text-emerald-700">
+                  ✓ Ajouté à « Mes produits » ({customs.length + 1})
+                </p>
+              ) : (
+                <button
+                  onClick={ajouterAi}
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-xs font-semibold text-primary-foreground"
+                >
+                  <Plus className="size-3.5" /> Ajouter à mes produits
+                </button>
+              )}
+              <p className="mt-2 text-[10px] italic text-muted-foreground">Valeurs estimées par l'IA — vérifie l'étiquette si tu veux une précision parfaite.</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
