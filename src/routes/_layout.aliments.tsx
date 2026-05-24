@@ -262,7 +262,7 @@ function AddTab({ onSaved }: { onSaved: () => void }) {
 
   const scanFn = useServerFn(scanNutritionLabel);
   const fileRef = useRef<HTMLInputElement | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [scanPreview, setPreview] = useState<string | null>(null);
   const [scanState, setScanState] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [scanError, setScanError] = useState<string | null>(null);
   const [scanNote, setScanNote] = useState<string | null>(null);
@@ -304,7 +304,7 @@ function AddTab({ onSaved }: { onSaved: () => void }) {
     return isFinite(n) ? n : 0;
   };
 
-  const preview = useMemo(() => {
+  const scanPreview = useMemo(() => {
     const k = num(kcal);
     const p = num(proteines);
     const ratio = k > 0 ? (p / k) * 100 : 0;
@@ -362,7 +362,7 @@ function AddTab({ onSaved }: { onSaved: () => void }) {
           }}
         />
 
-        {!preview && (
+        {!scanPreview && (
           <button
             onClick={() => fileRef.current?.click()}
             className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-warm)]"
@@ -371,10 +371,10 @@ function AddTab({ onSaved }: { onSaved: () => void }) {
           </button>
         )}
 
-        {preview && (
+        {scanPreview && (
           <div className="mt-3 space-y-2">
             <div className="relative overflow-hidden rounded-xl border border-border bg-card">
-              <img src={preview} alt="Aperçu étiquette" className="max-h-56 w-full object-contain" />
+              <img src={scanPreview} alt="Aperçu étiquette" className="max-h-56 w-full object-contain" />
               <button
                 onClick={resetScan}
                 className="absolute right-2 top-2 grid size-7 place-items-center rounded-full bg-background/90 text-foreground shadow"
