@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { Apple, Loader2, Plus, Search, Sparkles, Trash2, Wand2 } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { Apple, Camera, Loader2, Plus, Search, Sparkles, Trash2, Wand2, X } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { lookupAliment, type AiAlimentResult } from "@/lib/alimentAi.functions";
+import { scanNutritionLabel } from "@/lib/alimentScan.functions";
 import { AppShell } from "@/components/app/AppShell";
 import { ALIMENTS } from "@/data/aliments";
 import { useApp } from "@/lib/store";
@@ -259,6 +260,45 @@ function AddTab({ onSaved }: { onSaved: () => void }) {
   const [fibres, setFibres] = useState("");
   const [prix, setPrix] = useState("");
 
+  const scanFn = useServerFn(scanNutritionLabel);
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const [scanPreview, setPreview] = useState<string | null>(null);
+  const [scanState, setScanState] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [scanError, setScanError] = useState<string | null>(null);
+  const [scanNote, setScanNote] = useState<string | null>(null);
+
+  const handleFile = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      setScanState("error"); setScanError("Fichier non supporté (image uniquement)"); return;
+    }
+    setScanState("loading"); setScanError(null); setScanNote(null);
+    try {
+      const dataUrl = await new Promise<string>((res, rej) => {
+        const fr = new FileReader();
+        fr.onload = () => res(fr.result as string);
+        fr.onerror = () => rej(new Error("Lecture impossible"));
+        fr.readAsDataURL(file);
+      });
+      setPreview(dataUrl);
+      const r = await scanFn({ data: { imageDataUrl: dataUrl } });
+      setKcal(String(Math.round(r.kcal)));
+      setProteines(String(r.proteines));
+      setGlucides(String(r.glucides));
+      setLipides(String(r.lipides));
+      setFibres(String(r.fibres));
+      if (r.nom && !nom.trim()) setNom(r.nom);
+      setScanNote(r.note ?? null);
+      setScanState("done");
+    } catch (e) {
+      setScanState("error"); setScanError(e instanceof Error ? e.message : "Erreur inconnue");
+    }
+  };
+
+  const resetScan = () => {
+    setPreview(null); setScanState("idle"); setScanError(null); setScanNote(null);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
   const num = (v: string) => {
     const n = parseFloat(v.replace(",", "."));
     return isFinite(n) ? n : 0;
@@ -302,6 +342,72 @@ function AddTab({ onSaved }: { onSaved: () => void }) {
 
   return (
     <div className="space-y-4">
+      <div className="rounded-2xl border border-dashed border-primary/40 bg-primary/5 p-4">
+        <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-primary">
+          <Sparkles className="size-3" /> Scan IA
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Photographie un tableau nutritionnel — l'IA pré-remplit les champs ci-dessous.
+        </p>
+
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) handleFile(f);
+          }}
+        />
+
+        {!scanPreview && (
+          <button
+            onClick={() => fileRef.current?.click()}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-warm)]"
+          >
+            <Camera className="size-4" /> Scanner un tableau nutritionnel
+          </button>
+        )}
+
+        {scanPreview && (
+          <div className="mt-3 space-y-2">
+            <div className="relative overflow-hidden rounded-xl border border-border bg-card">
+              <img src={scanPreview} alt="Aperçu étiquette" className="max-h-56 w-full object-contain" />
+              <button
+                onClick={resetScan}
+                className="absolute right-2 top-2 grid size-7 place-items-center rounded-full bg-background/90 text-foreground shadow"
+                aria-label="Retirer"
+              >
+                <X className="size-3.5" />
+              </button>
+            </div>
+
+            {scanState === "loading" && (
+              <p className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="size-3.5 animate-spin" /> Analyse de l'étiquette…
+              </p>
+            )}
+            {scanState === "done" && (
+              <p className="rounded-lg bg-emerald-500/15 px-3 py-2 text-center text-xs font-semibold text-emerald-700">
+                ✓ Valeurs détectées — vérifie puis valide en bas
+                {scanNote && <span className="block font-normal text-emerald-700/80">{scanNote}</span>}
+              </p>
+            )}
+            {scanState === "error" && (
+              <p className="rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">{scanError}</p>
+            )}
+            <button
+              onClick={() => fileRef.current?.click()}
+              className="w-full rounded-lg border border-border bg-card py-2 text-xs font-medium"
+            >
+              Choisir une autre photo
+            </button>
+          </div>
+        )}
+      </div>
+
       <div className="rounded-2xl bg-card p-4 shadow-[var(--shadow-soft)] space-y-3">
         <Field label="Nom *" value={nom} onChange={setNom} placeholder="Ex. Yaourt Skyr Lidl" />
         <Field label="Marque" value={marque} onChange={setMarque} placeholder="Ex. Milbona" />
