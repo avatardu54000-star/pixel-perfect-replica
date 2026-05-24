@@ -304,7 +304,7 @@ function AddTab({ onSaved }: { onSaved: () => void }) {
     return isFinite(n) ? n : 0;
   };
 
-  const scanPreview = useMemo(() => {
+  const preview = useMemo(() => {
     const k = num(kcal);
     const p = num(proteines);
     const ratio = k > 0 ? (p / k) * 100 : 0;
