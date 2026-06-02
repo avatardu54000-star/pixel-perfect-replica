@@ -4,7 +4,7 @@ import { useApp } from "@/lib/store";
 import { batchSummary, JOURS_LABELS, macrosJour, prixSemaine, REPAS_LABELS } from "@/lib/nutrition";
 import { RECETTES } from "@/data/recettes";
 import { getRecette } from "@/lib/recipeLookup";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChefHat, CheckCircle2, Clock, MessageCircle, Package, Plus, Sparkles, X, Wand2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type { BatchConfig, RepasPlanifie } from "@/lib/types";
@@ -12,10 +12,15 @@ import { RepasDetailSheet } from "@/components/app/RepasDetailSheet";
 import { RepasEditSheet } from "@/components/app/RepasEditSheet";
 
 export const Route = createFileRoute("/_layout/semaines")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    wizard: search.wizard === 1 || search.wizard === "1" ? 1 : undefined,
+  }),
   component: SemainesPage,
 });
 
 function SemainesPage() {
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
   const semaines = useApp((s) => s.semaines);
   const activeId = useApp((s) => s.semaineActiveId);
   const setActive = useApp((s) => s.setSemaineActive);
@@ -30,6 +35,13 @@ function SemainesPage() {
   const [editIng, setEditIng] = useState<{ jourIdx: number; repas: RepasPlanifie } | null>(null);
   const [batchOpen, setBatchOpen] = useState(false);
   const [confirmMsg, setConfirmMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (search.wizard === 1 && checkInDone) {
+      setBatchOpen(true);
+      navigate({ search: {}, replace: true });
+    }
+  }, [search.wizard, checkInDone, navigate]);
 
   const summary = semaine.batch_config ? batchSummary(semaine) : null;
 
