@@ -9,16 +9,16 @@ export const Route = createFileRoute("/_layout/coach")({
   component: CoachPage,
 });
 
-const QUESTIONS = [
-  "Comment s'est passée ta semaine côté énergie ? Tu te sentais bien ou plutôt à plat ?",
-  "Et côté faim — tu avais assez à manger ou tu te sentais en manque ?",
-  "Des fringales particulières cette semaine ?",
-  "Combien de séances de sport tu as pu faire ?",
-  "Tu as bien dormi cette semaine ?",
-  "Un plat que tu as adoré ? Un que tu as moins aimé ?",
-  "La semaine prochaine, des imprévus (resto, sortie) ?",
-  "Envie de quelle cuisine la semaine prochaine ?",
-  "Des contraintes budget particulières ?",
+const QUESTIONS: { q: string; label: string }[] = [
+  { q: "Comment s'est passée ton énergie cette semaine ? Plutôt en forme ou à plat ?", label: "Énergie" },
+  { q: "Et le sommeil — tu as bien dormi cette semaine ?", label: "Sommeil" },
+  { q: "Combien de séances de muscu tu as réussi à faire ?", label: "Séances muscu" },
+  { q: "Tu as eu des fringales ou des sensations de manque ?", label: "Fringales / manques" },
+  { q: "Après les repas, tu te sentais plutôt lourd ou léger ?", label: "Digestion" },
+  { q: "Un plat que tu as adoré ou détesté cette semaine ?", label: "Plat marquant" },
+  { q: "La semaine prochaine, tu as des imprévus (resto, sortie, déplacement) ?", label: "Imprévus" },
+  { q: "Tu as envie de quelle cuisine cette semaine ?", label: "Envies cuisine" },
+  { q: "Des contraintes de budget particulières ?", label: "Budget" },
 ];
 
 const ACKS = [
@@ -34,7 +34,7 @@ const ACKS = [
 ];
 
 const FINAL =
-  "Merci pour ce check-in complet 🙏 Voici ce que je retiens : on garde un cap équilibré, on adapte les portions à ton énergie et on respecte ton budget. Je te prépare un planning sur mesure — file dans l'onglet Semaines pour le voir ✨";
+  "Merci pour ce check-in complet 🙏 J'ai tout ce qu'il me faut. Voici le résumé ci-dessous — quand tu es prêt·e, on génère ton planning de la semaine.";
 
 interface Msg { role: "coach" | "user"; text: string; }
 
@@ -43,9 +43,10 @@ function CoachPage() {
   const setCheckInDone = useApp((s) => s.setCheckInDone);
   const [msgs, setMsgs] = useState<Msg[]>([
     { role: "coach", text: "Salut ! C'est l'heure du check-in hebdo 💪 Prêt·e à faire le point ensemble ?" },
-    { role: "coach", text: QUESTIONS[0] },
+    { role: "coach", text: QUESTIONS[0].q },
   ]);
   const [step, setStep] = useState(0);
+  const [answers, setAnswers] = useState<string[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -53,18 +54,19 @@ function CoachPage() {
     const text = input.trim();
     if (!text || loading) return;
     setMsgs((prev) => [...prev, { role: "user", text }]);
+    setAnswers((prev) => [...prev, text]);
     setInput("");
     setLoading(true);
     const nextStep = step + 1;
-    // Simulation : délai réaliste 700-1400ms
-    await new Promise((r) => setTimeout(r, 700 + Math.random() * 700));
+    // Délai naturel entre les réponses
+    await new Promise((r) => setTimeout(r, 800 + Math.random() * 900));
     const ack = ACKS[Math.floor(Math.random() * ACKS.length)];
     const replies: Msg[] = [{ role: "coach", text: ack }];
     if (nextStep < QUESTIONS.length) {
-      await new Promise((r) => setTimeout(r, 400));
-      replies.push({ role: "coach", text: QUESTIONS[nextStep] });
+      await new Promise((r) => setTimeout(r, 500 + Math.random() * 400));
+      replies.push({ role: "coach", text: QUESTIONS[nextStep].q });
     } else {
-      await new Promise((r) => setTimeout(r, 500));
+      await new Promise((r) => setTimeout(r, 600));
       replies.push({ role: "coach", text: FINAL });
       setCheckInDone(true);
     }
@@ -76,9 +78,10 @@ function CoachPage() {
   const reset = () => {
     setMsgs([
       { role: "coach", text: "On refait un point ? 💬" },
-      { role: "coach", text: QUESTIONS[0] },
+      { role: "coach", text: QUESTIONS[0].q },
     ]);
     setStep(0);
+    setAnswers([]);
     setCheckInDone(false);
   };
   const finished = step >= QUESTIONS.length;
@@ -86,28 +89,6 @@ function CoachPage() {
   return (
     <AppShell title="Coach IA" subtitle="Check-in hebdomadaire, sans jugement">
       <div className="space-y-3 pb-20">
-        {checkInDone && (
-          <div className="rounded-2xl border border-success/30 bg-success/10 p-4 text-success">
-            <p className="text-xs font-bold uppercase tracking-wider opacity-80">Check-in terminé ✅</p>
-            <p className="mt-1 text-sm leading-snug">
-              Ton planning peut maintenant être généré selon tes réponses.
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <Link
-                to="/semaines"
-                className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
-              >
-                <ChefHat className="size-3.5" /> Configurer mon batch cooking
-              </Link>
-              <button
-                onClick={reset}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground"
-              >
-                <RotateCcw className="size-3.5" /> Refaire le check-in
-              </button>
-            </div>
-          </div>
-        )}
         {msgs.map((m, i) => (
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
             <div
@@ -126,6 +107,34 @@ function CoachPage() {
           <div className="flex justify-start">
             <div className="rounded-2xl rounded-bl-md bg-card px-4 py-2.5 text-sm shadow-[var(--shadow-soft)]">
               <Loader2 className="size-4 animate-spin" />
+            </div>
+          </div>
+        )}
+        {finished && checkInDone && (
+          <div className="mt-4 rounded-2xl border border-success/30 bg-success/10 p-4">
+            <p className="text-xs font-bold uppercase tracking-wider text-success/90">Résumé du check-in ✅</p>
+            <ul className="mt-3 space-y-2">
+              {QUESTIONS.map((qq, i) => (
+                <li key={i} className="rounded-xl bg-card/70 p-2.5">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{qq.label}</p>
+                  <p className="mt-0.5 text-sm leading-snug">{answers[i] ?? <span className="italic text-muted-foreground">—</span>}</p>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link
+                to="/semaines"
+                search={{ wizard: 1 }}
+                className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-soft)]"
+              >
+                <ChefHat className="size-4" /> Générer mon planning
+              </Link>
+              <button
+                onClick={reset}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground"
+              >
+                <RotateCcw className="size-3.5" /> Refaire le check-in
+              </button>
             </div>
           </div>
         )}
