@@ -110,17 +110,35 @@ function SemainesPage() {
       <div className="space-y-3">
         {semaine.jours.map((jour, jourIdx) => {
           const m = macrosJour(jour);
-          const ok = Math.abs(m.kcal - profil.objectif_calories_jour) < 250;
+          const kcalMax = profil.objectif_calories_jour; // 2100
+          const protMin = profil.objectif_proteines_g; // 170
+          const kcalOver = m.kcal > kcalMax;
+          const protUnder = m.proteines < protMin;
+          const quotaKo = kcalOver || protUnder;
           return (
             <div key={jour.date} className="rounded-2xl bg-card p-4 shadow-[var(--shadow-soft)]">
               <div className="mb-3 flex items-center justify-between">
                 <h3 className="font-semibold">{JOURS_LABELS[jourIdx]} {jour.date.slice(8, 10)}/{jour.date.slice(5, 7)}</h3>
-                <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                  ok ? "bg-success/15 text-success" : "bg-warning/15 text-warning"
-                }`}>
-                  {Math.round(m.kcal)} kcal · {Math.round(m.proteines)}P
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums ${
+                    quotaKo ? "bg-destructive/15 text-destructive" : "bg-success/15 text-success"
+                  }`}
+                  title={`Max ${kcalMax} kcal · Min ${protMin}g protéines`}
+                >
+                  <span className={kcalOver ? "font-bold" : ""}>{Math.round(m.kcal)}</span>
+                  /{kcalMax} kcal ·{" "}
+                  <span className={protUnder ? "font-bold" : ""}>{Math.round(m.proteines)}</span>
+                  /{protMin}P
                 </span>
               </div>
+              {quotaKo && (
+                <p className="mb-2 text-[11px] font-medium text-destructive">
+                  ⚠ Quota non respecté :
+                  {kcalOver && ` +${Math.round(m.kcal - kcalMax)} kcal au-dessus du max`}
+                  {kcalOver && protUnder && " · "}
+                  {protUnder && `${Math.round(protMin - m.proteines)}g de protéines manquantes`}
+                </p>
+              )}
               <div className="grid grid-cols-2 gap-2">
                 {jour.repas.map((r) => {
                   const recette = getRecette(r.recette_id);
