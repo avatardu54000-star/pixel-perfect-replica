@@ -128,9 +128,6 @@ function equilibrerJour(jour: JourPlanifie, skyr: Aliment | undefined): JourPlan
     const dessert = repas.find((r) => r.type === "dessert") ?? repas[repas.length - 1];
     if (dessert) {
       const ingr = dessert.custom_ingredients ?? resolveIngredients(dessert).map((i) => ({ ...i }));
-      const existing = ingr.find((i) => i.aliment_id === "skyr");
-      const baseSkyr = existing?.quantite_g_par_portion ?? 0;
-
       for (let guard = 0; guard < 60; guard++) {
         const m = macrosRepas(repas);
         const protOk = m.proteines >= QUOTA_PROT_MIN;
@@ -146,8 +143,8 @@ function equilibrerJour(jour: JourPlanifie, skyr: Aliment | undefined): JourPlan
         const add = Math.max(20, Math.min(headroomKcal, Math.max(gramsByProt, gramsByKcal)));
         if (add < 5) break;
 
-        const currentTotal = (existing?.quantite_g_par_portion ?? baseSkyr) * dessert.portions;
-        const newPerPortion = Math.round((currentTotal + add) / dessert.portions);
+        const existing = ingr.find((i) => i.aliment_id === "skyr");
+        const newPerPortion = Math.round(((existing?.quantite_g_par_portion ?? 0) * dessert.portions + add) / dessert.portions);
         if (existing) {
           existing.quantite_g_par_portion = newPerPortion;
         } else {
