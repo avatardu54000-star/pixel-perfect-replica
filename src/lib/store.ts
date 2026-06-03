@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Aliment, BatchConfig, IngredientRecette, PoidsEntry, Preferences, Profil, Recette, Semaine } from "./types";
-import { calcTDEE, genererSemaineBatch, genererSemaineDefaut, objectifProteines, startOfWeek } from "./nutrition";
+import { calcTDEE, equilibrerSemaine, genererSemaineBatch, genererSemaineDefaut, objectifProteines, startOfWeek } from "./nutrition";
 import { setCustomRecettes } from "./recipeLookup";
 import { setCustomAliments } from "./alimentLookup";
 
@@ -54,7 +54,7 @@ interface State {
 }
 
 function ensureFirstSemaine(): { semaines: Semaine[]; activeId: string } {
-  const s = genererSemaineDefaut(1, startOfWeek());
+  const s = equilibrerSemaine(genererSemaineDefaut(1, startOfWeek()));
   return { semaines: [s], activeId: s.id };
 }
 
@@ -85,7 +85,7 @@ export const useApp = create<State>()(
           const last = sems[sems.length - 1];
           const nextStart = last ? new Date(last.date_debut) : startOfWeek();
           if (last) nextStart.setDate(nextStart.getDate() + 7);
-          const s = genererSemaineDefaut((last?.numero ?? 0) + 1, nextStart);
+          const s = equilibrerSemaine(genererSemaineDefaut((last?.numero ?? 0) + 1, nextStart));
           set({ semaines: [...sems, s], semaineActiveId: s.id });
           return s;
         },
@@ -94,7 +94,7 @@ export const useApp = create<State>()(
           const last = sems[sems.length - 1];
           const nextStart = last ? new Date(last.date_debut) : startOfWeek();
           if (last) nextStart.setDate(nextStart.getDate() + 7);
-          const s = genererSemaineBatch((last?.numero ?? 0) + 1, nextStart, cfg);
+          const s = equilibrerSemaine(genererSemaineBatch((last?.numero ?? 0) + 1, nextStart, cfg));
           set({ semaines: [...sems, s], semaineActiveId: s.id });
           return s;
         },
