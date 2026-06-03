@@ -90,6 +90,77 @@ export function macrosJour(jour: JourPlanifie) {
   return macrosRepas(jour.repas);
 }
 
+// ===== Équilibrage automatique pour respecter les quotas =====
+export const QUOTA_KCAL_MIN = 1950;
+export const QUOTA_KCAL_MAX = 2100;
+export const QUOTA_PROT_MIN = 170;
+
+/**
+ * Ajuste chaque jour d'une semaine pour respecter obligatoirement :
+ * - protéines ≥ 170 g
+ * - kcal ∈ [1950, 2100]
+ * Stratégie : booster la portion de skyr sur le dessert (meilleur ratio P/kcal),
+ * et réduire les portions des repas les moins protéinés si on dépasse le plafond kcal.
+ */
+export function equilibrerSemaine(semaine: Semaine): Semaine {
+  const skyr = ALIMENTS_MAP["skyr"];
+  const jours = semaine.jours.map((j) => equilibrerJour(j, skyr));
+  return { ...semaine, jours };
+}
+
+function equilibrerJour(jour: JourPlanifie, skyr: Aliment | undefined): JourPlanifie {
+  const repas = jour.repas.map((r) => ({ ...r, custom_ingredients: r.custom_ingredients ? [...r.custom_ingredients] : undefined }));
+
+  // 1) Si trop de kcal : réduire les portions des repas les moins protéinés (sauf dessert)
+  for (let guard = 0; guard < 50; guard++) {
+    const m = macrosRepas(repas);
+    if (m.kcal <= QUOTA_KCAL_MAX) break;
+    const candidats = repas
+      .map((r, i) => ({ i, r, macros: macrosRepasPlanifie(r) }))
+      .filter((x) => x.r.portions > 0.5 && x.r.type !== "dessert")
+      .sort((a, b) => a.macros.proteines / Math.max(1, a.macros.kcal) - b.macros.proteines / Math.max(1, b.macros.kcal));
+    if (!candidats.length) break;
+    candidats[0].r.portions = Math.max(0.5, Math.round((candidats[0].r.portions - 0.1) * 10) / 10);
+  }
+
+  // 2) Booster avec du skyr sur le dessert pour atteindre 170 g protéines et ≥ 1950 kcal
+  if (skyr) {
+    const dessert = repas.find((r) => r.type === "dessert") ?? repas[repas.length - 1];
+    if (dessert) {
+      const ingr = dessert.custom_ingredients ?? resolveIngredients(dessert).map((i) => ({ ...i }));
+      const existing = ingr.find((i) => i.aliment_id === "skyr");
+      const baseSkyr = existing?.quantite_g_par_portion ?? 0;
+
+      for (let guard = 0; guard < 60; guard++) {
+        const m = macrosRepas(repas);
+        const protOk = m.proteines >= QUOTA_PROT_MIN;
+        const kcalOk = m.kcal >= QUOTA_KCAL_MIN;
+        if (protOk && kcalOk) break;
+        if (m.kcal >= QUOTA_KCAL_MAX) break;
+
+        const deficitProt = Math.max(0, QUOTA_PROT_MIN - m.proteines);
+        const deficitKcal = Math.max(0, QUOTA_KCAL_MIN - m.kcal);
+        const gramsByProt = deficitProt / (skyr.pour_100g.proteines / 100);
+        const gramsByKcal = deficitKcal / (skyr.pour_100g.kcal / 100);
+        const headroomKcal = (QUOTA_KCAL_MAX - m.kcal) / (skyr.pour_100g.kcal / 100);
+        const add = Math.max(20, Math.min(headroomKcal, Math.max(gramsByProt, gramsByKcal)));
+        if (add < 5) break;
+
+        const currentTotal = (existing?.quantite_g_par_portion ?? baseSkyr) * dessert.portions;
+        const newPerPortion = Math.round((currentTotal + add) / dessert.portions);
+        if (existing) {
+          existing.quantite_g_par_portion = newPerPortion;
+        } else {
+          ingr.push({ aliment_id: "skyr", quantite_g_par_portion: newPerPortion });
+        }
+        dessert.custom_ingredients = ingr;
+      }
+    }
+  }
+
+  return { ...jour, repas };
+}
+
 export function prixSemaine(semaine: Semaine): number {
   let total = 0;
   for (const j of semaine.jours) {
