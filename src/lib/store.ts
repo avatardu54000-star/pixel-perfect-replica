@@ -169,6 +169,7 @@ export const useApp = create<State>()(
       onRehydrateStorage: () => (state) => {
         if (state?.recettesCustom) setCustomRecettes(state.recettesCustom);
         if (state?.alimentsCustom) setCustomAliments(state.alimentsCustom);
+        if (state?.semaines) state.semaines = state.semaines.map((s) => equilibrerSemaine(s));
       },
     },
   ),
