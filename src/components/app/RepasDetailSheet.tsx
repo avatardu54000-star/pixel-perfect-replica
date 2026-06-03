@@ -86,12 +86,19 @@ export function RepasDetailSheet({ repas, onClose, onReplace, onEdit }: Props) {
 
           {recette.etapes.length > 0 && (
             <section>
-              <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">Préparation</h3>
+              <div className="mb-2 flex items-center justify-between">
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                  Préparation · {recette.etapes.length} étapes
+                </h3>
+                <span className="rounded-full bg-accent/20 px-2 py-0.5 text-[10px] font-bold text-accent-foreground">
+                  📦 Tupperware {recette.conservation_jours} j
+                </span>
+              </div>
               <ol className="space-y-2">
                 {recette.etapes.map((e, i) => (
                   <li key={i} className="flex gap-3 text-sm">
                     <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">{i + 1}</span>
-                    <span className="pt-0.5">{e}</span>
+                    <span className="pt-0.5 leading-relaxed">{e}</span>
                   </li>
                 ))}
               </ol>
