@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/app/AppShell";
 import { MacroRing } from "@/components/app/MacroRing";
+import { SavoirDuJourCard } from "@/components/app/SavoirDuJourCard";
 import { useApp, useSemaineActive } from "@/lib/store";
 import { JOURS_LABELS, macrosJour, REPAS_LABELS } from "@/lib/nutrition";
 import { getRecette } from "@/lib/recipeLookup";
