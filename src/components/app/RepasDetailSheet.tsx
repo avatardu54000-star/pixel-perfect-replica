@@ -1,17 +1,20 @@
-import { X, Replace, Clock, Flame, Pencil } from "lucide-react";
+import { X, Replace, Clock, Flame, Pencil, Sparkles, ThumbsUp, RefreshCw, Wand2 } from "lucide-react";
+import { useState } from "react";
 import { ALIMENTS_MAP } from "@/data/aliments";
+import { RECETTES } from "@/data/recettes";
 import { getRecette } from "@/lib/recipeLookup";
-import { macrosIngredient, macrosRepasPlanifie, resolveIngredients, REPAS_LABELS } from "@/lib/nutrition";
-import type { RepasPlanifie } from "@/lib/types";
+import { macrosIngredient, macrosRecette, macrosRepasPlanifie, resolveIngredients, REPAS_LABELS } from "@/lib/nutrition";
+import type { Recette, RepasPlanifie } from "@/lib/types";
 
 interface Props {
   repas: RepasPlanifie;
   onClose: () => void;
   onReplace?: () => void;
   onEdit?: () => void;
+  onPick?: (recetteId: string) => void;
 }
 
-export function RepasDetailSheet({ repas, onClose, onReplace, onEdit }: Props) {
+export function RepasDetailSheet({ repas, onClose, onReplace, onEdit, onPick }: Props) {
   const recette = getRecette(repas.recette_id);
   if (!recette) return null;
   const total = macrosRepasPlanifie(repas);
@@ -43,6 +46,10 @@ export function RepasDetailSheet({ repas, onClose, onReplace, onEdit }: Props) {
         </div>
 
         <div className="space-y-5 p-5">
+          {onPick && (
+            <AiSuggestionsPanel currentRecette={recette} repas={repas} onPick={onPick} />
+          )}
+
           <div className="grid grid-cols-4 gap-2 rounded-2xl bg-muted p-3 text-center">
             <Stat label="Kcal" value={Math.round(total.kcal)} icon={<Flame className="size-3" />} />
             <Stat label="Prot" value={`${Math.round(total.proteines)}g`} />
@@ -135,5 +142,218 @@ function Stat({ label, value, icon }: { label: string; value: string | number; i
       <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
       <p className="mt-0.5 inline-flex items-center gap-1 font-display text-lg tabular-nums">{icon}{value}</p>
     </div>
+  );
+}
+
+type Consistance = "consistant" | "leger";
+type CuisineChoice = "italienne" | "asiatique" | "française" | "méditerranéenne" | "brésilienne" | "autre";
+
+function pickAlternatives(current: Recette, n: number, filter?: (r: Recette) => boolean): Recette[] {
+  // Same meal type when possible, else any non-dessert
+  const sameType = RECETTES.filter(
+    (r) => r.id !== current.id && r.type_repas === current.type_repas,
+  );
+  const pool = (sameType.length >= n ? sameType : RECETTES.filter((r) => r.id !== current.id)).filter(
+    (r) => (filter ? filter(r) : true),
+  );
+  // Prioritize: different cuisine first to vary, then by kcal proximity
+  const scored = pool.map((r) => ({
+    r,
+    score: (r.cuisine === current.cuisine ? 1 : 0) + Math.random() * 0.3,
+  }));
+  scored.sort((a, b) => a.score - b.score);
+  return scored.slice(0, n).map((s) => s.r);
+}
+
+function AiSuggestionsPanel({
+  currentRecette,
+  repas,
+  onPick,
+}: {
+  currentRecette: Recette;
+  repas: RepasPlanifie;
+  onPick: (recetteId: string) => void;
+}) {
+  const [mode, setMode] = useState<"idle" | "validated" | "alternatives" | "precise" | "result">("idle");
+  const [alts, setAlts] = useState<Recette[]>([]);
+  const [consistance, setConsistance] = useState<Consistance | null>(null);
+  const [cuisinePref, setCuisinePref] = useState<CuisineChoice | null>(null);
+  const [suggestion, setSuggestion] = useState<Recette | null>(null);
+
+  const reset = () => {
+    setMode("idle");
+    setAlts([]);
+    setConsistance(null);
+    setCuisinePref(null);
+    setSuggestion(null);
+  };
+
+  const handleAutreIdee = () => {
+    setAlts(pickAlternatives(currentRecette, 2));
+    setMode("alternatives");
+  };
+
+  const handlePrecise = () => {
+    setConsistance(null);
+    setCuisinePref(null);
+    setSuggestion(null);
+    setMode("precise");
+  };
+
+  const computeSuggestion = (c: Consistance, cuis: CuisineChoice) => {
+    const targetKcal = macrosRecette(currentRecette.id, repas.portions).kcal;
+    const candidates = RECETTES.filter(
+      (r) => r.id !== currentRecette.id && r.type_repas !== "dessert",
+    );
+    let pool = candidates.filter((r) => r.cuisine === cuis);
+    if (pool.length === 0) pool = candidates;
+    const scored = pool.map((r) => {
+      const k = macrosRecette(r.id, repas.portions).kcal;
+      const kcalScore = c === "consistant" ? -k : k; // consistant = + de kcal
+      return { r, score: kcalScore + (r.type_repas === repas.type ? -50 : 0) };
+    });
+    scored.sort((a, b) => a.score - b.score);
+    const best = scored[0]?.r ?? candidates[0];
+    setSuggestion(best);
+    setMode("result");
+    void targetKcal;
+  };
+
+  if (mode === "validated") {
+    return (
+      <div className="flex items-center gap-2 rounded-2xl bg-success/15 px-4 py-3 text-success">
+        <ThumbsUp className="size-4" />
+        <p className="text-sm font-semibold">Parfait, on garde cette recette !</p>
+      </div>
+    );
+  }
+
+  return (
+    <section className="rounded-2xl border border-primary/20 bg-primary/5 p-3">
+      <div className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-primary">
+        <Sparkles className="size-3" /> Suggestion IA
+      </div>
+
+      {mode === "idle" && (
+        <div className="grid grid-cols-3 gap-1.5">
+          <ActionBtn icon="👍" label="Parfait" onClick={() => setMode("validated")} />
+          <ActionBtn icon="🔄" label="Autre idée" onClick={handleAutreIdee} />
+          <ActionBtn icon="✏️" label="Précise" onClick={handlePrecise} />
+        </div>
+      )}
+
+      {mode === "alternatives" && (
+        <div>
+          <p className="mb-2 text-xs text-muted-foreground">Voici 2 alternatives pour ce repas :</p>
+          <div className="space-y-2">
+            {alts.map((r) => (
+              <button
+                key={r.id}
+                onClick={() => onPick(r.id)}
+                className="flex w-full items-center gap-3 rounded-xl bg-card p-2.5 text-left transition hover:bg-muted"
+              >
+                <span className="text-2xl">{r.emoji}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold">{r.nom}</p>
+                  <p className="line-clamp-1 text-[11px] text-muted-foreground">
+                    {r.cuisine} · {Math.round(macrosRecette(r.id, repas.portions).kcal)} kcal · {Math.round(macrosRecette(r.id, repas.portions).proteines)}g P
+                  </p>
+                </div>
+                <RefreshCw className="size-4 shrink-0 text-primary" />
+              </button>
+            ))}
+          </div>
+          <button onClick={reset} className="mt-2 w-full text-center text-[11px] font-medium text-muted-foreground hover:text-foreground">
+            Annuler
+          </button>
+        </div>
+      )}
+
+      {mode === "precise" && (
+        <div className="space-y-3">
+          <div>
+            <p className="mb-1.5 text-xs font-semibold">1. Tu veux quelque chose de…</p>
+            <div className="grid grid-cols-2 gap-1.5">
+              <PickBtn active={consistance === "consistant"} onClick={() => setConsistance("consistant")}>🍖 Consistant</PickBtn>
+              <PickBtn active={consistance === "leger"} onClick={() => setConsistance("leger")}>🥗 Léger</PickBtn>
+            </div>
+          </div>
+          <div>
+            <p className="mb-1.5 text-xs font-semibold">2. Quelle cuisine ?</p>
+            <div className="grid grid-cols-3 gap-1.5">
+              {(["italienne", "asiatique", "française", "méditerranéenne", "brésilienne", "autre"] as CuisineChoice[]).map((c) => (
+                <PickBtn key={c} active={cuisinePref === c} onClick={() => setCuisinePref(c)}>
+                  {c}
+                </PickBtn>
+              ))}
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={reset} className="flex-1 rounded-xl bg-muted py-2 text-xs font-medium text-muted-foreground">
+              Annuler
+            </button>
+            <button
+              disabled={!consistance || !cuisinePref}
+              onClick={() => computeSuggestion(consistance!, cuisinePref!)}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary py-2 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+            >
+              <Wand2 className="size-3.5" /> Générer
+            </button>
+          </div>
+        </div>
+      )}
+
+      {mode === "result" && suggestion && (
+        <div>
+          <p className="mb-2 text-xs text-muted-foreground">D'après tes envies, je te propose :</p>
+          <button
+            onClick={() => onPick(suggestion.id)}
+            className="flex w-full items-center gap-3 rounded-xl bg-card p-3 text-left transition hover:bg-muted"
+          >
+            <span className="text-3xl">{suggestion.emoji}</span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold">{suggestion.nom}</p>
+              <p className="line-clamp-1 text-[11px] text-muted-foreground">
+                {suggestion.cuisine} · {Math.round(macrosRecette(suggestion.id, repas.portions).kcal)} kcal · {Math.round(macrosRecette(suggestion.id, repas.portions).proteines)}g P
+              </p>
+            </div>
+            <RefreshCw className="size-4 shrink-0 text-primary" />
+          </button>
+          <div className="mt-2 flex gap-2">
+            <button onClick={handlePrecise} className="flex-1 rounded-xl bg-muted py-2 text-xs font-medium text-muted-foreground">
+              Reformuler
+            </button>
+            <button onClick={reset} className="flex-1 rounded-xl bg-muted py-2 text-xs font-medium text-muted-foreground">
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ActionBtn({ icon, label, onClick }: { icon: string; label: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex flex-col items-center justify-center gap-0.5 rounded-xl bg-card px-2 py-2.5 text-[11px] font-semibold transition hover:bg-muted active:scale-95"
+    >
+      <span className="text-lg leading-none">{icon}</span>
+      {label}
+    </button>
+  );
+}
+
+function PickBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`rounded-lg px-2 py-1.5 text-[11px] font-semibold capitalize transition ${
+        active ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:bg-muted"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
