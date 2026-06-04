@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/app/AppShell";
+import { SavoirDuJourCard } from "@/components/app/SavoirDuJourCard";
 import { useState } from "react";
 import { Send, Loader2, ChefHat, RotateCcw } from "lucide-react";
 import { Link } from "@tanstack/react-router";
@@ -88,6 +89,9 @@ function CoachPage() {
 
   return (
     <AppShell title="Coach IA" subtitle="Check-in hebdomadaire, sans jugement">
+      <div className="mb-4">
+        <SavoirDuJourCard />
+      </div>
       <div className="space-y-3 pb-20">
         {msgs.map((m, i) => (
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>

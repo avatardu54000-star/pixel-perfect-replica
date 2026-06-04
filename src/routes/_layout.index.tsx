@@ -1,11 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/app/AppShell";
 import { MacroRing } from "@/components/app/MacroRing";
+import { SavoirDuJourCard } from "@/components/app/SavoirDuJourCard";
 import { useApp, useSemaineActive } from "@/lib/store";
 import { JOURS_LABELS, macrosJour, REPAS_LABELS } from "@/lib/nutrition";
 import { getRecette } from "@/lib/recipeLookup";
-import { FICHES } from "@/data/education";
-import { Sparkles, TrendingUp } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 import { useState } from "react";
 import { RepasDetailSheet } from "@/components/app/RepasDetailSheet";
 import type { RepasPlanifie } from "@/lib/types";
@@ -29,7 +29,6 @@ function Dashboard() {
   const todayIdx = idxByDate >= 0 ? idxByDate : Math.max(0, Math.min(6, (new Date().getDay() + 6) % 7));
   const jourAuj = semaine.jours[todayIdx];
   const macros = macrosJour(jourAuj);
-  const fiche = FICHES[new Date().getDate() % FICHES.length];
   const propProteines = profil.objectif_proteines_g;
   const propLipides = Math.round((profil.objectif_calories_jour * 0.25) / 9);
   const propGlucides = Math.round((profil.objectif_calories_jour - propProteines * 4 - propLipides * 9) / 4);
@@ -112,15 +111,9 @@ function Dashboard() {
         Planifier ma semaine prochaine →
       </Link>
 
-      <section className="mt-6 rounded-2xl bg-accent p-5 text-accent-foreground shadow-[var(--shadow-soft)]">
-        <div className="flex items-center gap-2 text-xs uppercase tracking-wider opacity-90">
-          <Sparkles className="size-3.5" /> Le savoir du jour
-        </div>
-        <h3 className="mt-2 font-display text-xl">{fiche.emoji} {fiche.titre}</h3>
-        <p className="mt-2 text-sm opacity-95">{fiche.texte}</p>
-        <p className="mt-3 rounded-lg bg-white/10 px-3 py-2 text-xs">📊 {fiche.fait_chiffre}</p>
-        <p className="mt-2 text-[10px] opacity-70">Source · {fiche.source}</p>
-      </section>
+      <div className="mt-6">
+        <SavoirDuJourCard />
+      </div>
 
       {detail && <RepasDetailSheet repas={detail} onClose={() => setDetail(null)} />}
     </AppShell>
