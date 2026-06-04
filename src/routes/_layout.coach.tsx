@@ -89,6 +89,9 @@ function CoachPage() {
 
   return (
     <AppShell title="Coach IA" subtitle="Check-in hebdomadaire, sans jugement">
+      <div className="mb-4">
+        <SavoirDuJourCard />
+      </div>
       <div className="space-y-3 pb-20">
         {msgs.map((m, i) => (
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
