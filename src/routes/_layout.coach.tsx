@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/app/AppShell";
+import { SavoirDuJourCard } from "@/components/app/SavoirDuJourCard";
 import { useState } from "react";
 import { Send, Loader2, ChefHat, RotateCcw } from "lucide-react";
 import { Link } from "@tanstack/react-router";
