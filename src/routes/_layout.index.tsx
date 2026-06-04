@@ -29,7 +29,6 @@ function Dashboard() {
   const todayIdx = idxByDate >= 0 ? idxByDate : Math.max(0, Math.min(6, (new Date().getDay() + 6) % 7));
   const jourAuj = semaine.jours[todayIdx];
   const macros = macrosJour(jourAuj);
-  const fiche = FICHES[new Date().getDate() % FICHES.length];
   const propProteines = profil.objectif_proteines_g;
   const propLipides = Math.round((profil.objectif_calories_jour * 0.25) / 9);
   const propGlucides = Math.round((profil.objectif_calories_jour - propProteines * 4 - propLipides * 9) / 4);
