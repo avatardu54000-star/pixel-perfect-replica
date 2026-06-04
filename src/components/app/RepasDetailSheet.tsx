@@ -1,17 +1,20 @@
-import { X, Replace, Clock, Flame, Pencil } from "lucide-react";
+import { X, Replace, Clock, Flame, Pencil, Sparkles, ThumbsUp, RefreshCw, Wand2 } from "lucide-react";
+import { useState } from "react";
 import { ALIMENTS_MAP } from "@/data/aliments";
+import { RECETTES } from "@/data/recettes";
 import { getRecette } from "@/lib/recipeLookup";
-import { macrosIngredient, macrosRepasPlanifie, resolveIngredients, REPAS_LABELS } from "@/lib/nutrition";
-import type { RepasPlanifie } from "@/lib/types";
+import { macrosIngredient, macrosRecette, macrosRepasPlanifie, resolveIngredients, REPAS_LABELS } from "@/lib/nutrition";
+import type { Recette, RepasPlanifie } from "@/lib/types";
 
 interface Props {
   repas: RepasPlanifie;
   onClose: () => void;
   onReplace?: () => void;
   onEdit?: () => void;
+  onPick?: (recetteId: string) => void;
 }
 
-export function RepasDetailSheet({ repas, onClose, onReplace, onEdit }: Props) {
+export function RepasDetailSheet({ repas, onClose, onReplace, onEdit, onPick }: Props) {
   const recette = getRecette(repas.recette_id);
   if (!recette) return null;
   const total = macrosRepasPlanifie(repas);
@@ -43,6 +46,10 @@ export function RepasDetailSheet({ repas, onClose, onReplace, onEdit }: Props) {
         </div>
 
         <div className="space-y-5 p-5">
+          {onPick && (
+            <AiSuggestionsPanel currentRecette={recette} repas={repas} onPick={onPick} />
+          )}
+
           <div className="grid grid-cols-4 gap-2 rounded-2xl bg-muted p-3 text-center">
             <Stat label="Kcal" value={Math.round(total.kcal)} icon={<Flame className="size-3" />} />
             <Stat label="Prot" value={`${Math.round(total.proteines)}g`} />
