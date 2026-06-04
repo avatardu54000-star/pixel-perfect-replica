@@ -198,6 +198,12 @@ function SemainesPage() {
             setEditIng({ jourIdx: detail.jourIdx, repas: detail.repas });
             setDetail(null);
           }}
+          onPick={(recetteId) => {
+            changerRepas(semaine.id, detail.jourIdx, detail.repas.type, recetteId);
+            setDetail(null);
+            setConfirmMsg("Recette mise à jour ✨");
+            setTimeout(() => setConfirmMsg(null), 3500);
+          }}
         />
       )}
 
