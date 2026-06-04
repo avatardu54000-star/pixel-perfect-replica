@@ -111,15 +111,9 @@ function Dashboard() {
         Planifier ma semaine prochaine →
       </Link>
 
-      <section className="mt-6 rounded-2xl bg-accent p-5 text-accent-foreground shadow-[var(--shadow-soft)]">
-        <div className="flex items-center gap-2 text-xs uppercase tracking-wider opacity-90">
-          <Sparkles className="size-3.5" /> Le savoir du jour
-        </div>
-        <h3 className="mt-2 font-display text-xl">{fiche.emoji} {fiche.titre}</h3>
-        <p className="mt-2 text-sm opacity-95">{fiche.texte}</p>
-        <p className="mt-3 rounded-lg bg-white/10 px-3 py-2 text-xs">📊 {fiche.fait_chiffre}</p>
-        <p className="mt-2 text-[10px] opacity-70">Source · {fiche.source}</p>
-      </section>
+      <div className="mt-6">
+        <SavoirDuJourCard />
+      </div>
 
       {detail && <RepasDetailSheet repas={detail} onClose={() => setDetail(null)} />}
     </AppShell>
