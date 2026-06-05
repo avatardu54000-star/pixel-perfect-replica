@@ -563,6 +563,81 @@ function Cell({ value, onClick }: { value: number | null; onClick: () => void })
   );
 }
 
+function LibreLogSheet({
+  initial,
+  label,
+  onClose,
+  onClear,
+  onSubmit,
+}: {
+  initial?: MacrosBase;
+  label: string;
+  onClose: () => void;
+  onClear: () => void;
+  onSubmit: (m: MacrosBase) => void;
+}) {
+  const [kcal, setKcal] = useState(initial?.kcal?.toString() ?? "");
+  const [prot, setProt] = useState(initial?.proteines?.toString() ?? "");
+  const [glu, setGlu] = useState(initial?.glucides?.toString() ?? "");
+  const [lip, setLip] = useState(initial?.lipides?.toString() ?? "");
+  const valid = parseFloat(kcal) >= 0 && parseFloat(prot) >= 0;
+  const submit = () => {
+    onSubmit({
+      kcal: parseFloat(kcal) || 0,
+      proteines: parseFloat(prot) || 0,
+      glucides: parseFloat(glu) || 0,
+      lipides: parseFloat(lip) || 0,
+    });
+  };
+  return (
+    <div className="fixed inset-0 z-50 flex items-end bg-black/50" onClick={onClose}>
+      <div className="w-full rounded-t-3xl bg-card p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <h3 className="font-display text-xl">Ajouter ce que j'ai mangé</h3>
+            <p className="text-xs text-muted-foreground">{label} · saisis tes macros approximatives</p>
+          </div>
+          <button onClick={onClose} aria-label="Fermer"><X className="size-5" /></button>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <NumInput label="kcal" value={kcal} onChange={setKcal} />
+          <NumInput label="Protéines (g)" value={prot} onChange={setProt} />
+          <NumInput label="Glucides (g)" value={glu} onChange={setGlu} />
+          <NumInput label="Lipides (g)" value={lip} onChange={setLip} />
+        </div>
+        <button
+          disabled={!valid}
+          onClick={submit}
+          className="mt-4 w-full rounded-2xl bg-primary py-3 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-warm)] disabled:opacity-50"
+        >
+          Enregistrer
+        </button>
+        {initial && (
+          <button onClick={onClear} className="mt-2 w-full rounded-2xl py-2 text-xs font-medium text-muted-foreground hover:text-destructive">
+            Effacer ce log
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function NumInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <label className="block">
+      <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <input
+        type="number"
+        inputMode="numeric"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+        placeholder="0"
+      />
+    </label>
+  );
+}
+
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div>
