@@ -3,7 +3,7 @@ import { AppShell } from "@/components/app/AppShell";
 import { MacroRing } from "@/components/app/MacroRing";
 import { SavoirDuJourCard } from "@/components/app/SavoirDuJourCard";
 import { useApp, useSemaineActive } from "@/lib/store";
-import { JOURS_LABELS, macrosJour, REPAS_LABELS } from "@/lib/nutrition";
+import { JOURS_LABELS, macrosJourSafe, REPAS_LABELS } from "@/lib/nutrition";
 import { getRecette } from "@/lib/recipeLookup";
 import { TrendingUp } from "lucide-react";
 import { useState } from "react";
@@ -28,7 +28,9 @@ function Dashboard() {
   const idxByDate = semaine.jours.findIndex((j) => j.date.slice(0, 10) === todayISO);
   const todayIdx = idxByDate >= 0 ? idxByDate : Math.max(0, Math.min(6, (new Date().getDay() + 6) % 7));
   const jourAuj = semaine.jours[todayIdx];
-  const macros = macrosJour(jourAuj);
+  const macrosSafe = macrosJourSafe(jourAuj, todayIdx, semaine);
+  const macros = macrosSafe ?? { kcal: 0, proteines: 0, glucides: 0, lipides: 0, fibres: 0 };
+  const incomplete = macrosSafe === null;
   const propProteines = profil.objectif_proteines_g;
   const propLipides = Math.round((profil.objectif_calories_jour * 0.25) / 9);
   const propGlucides = Math.round((profil.objectif_calories_jour - propProteines * 4 - propLipides * 9) / 4);
@@ -45,7 +47,12 @@ function Dashboard() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs uppercase tracking-wider opacity-90">Aujourd'hui</p>
-            <p className="font-display text-2xl">{JOURS_LABELS[todayIdx]} · {Math.round(macros.kcal)} kcal</p>
+            <p className="font-display text-2xl">
+              {JOURS_LABELS[todayIdx]} · {incomplete ? "— kcal" : `${Math.round(macros.kcal)} kcal`}
+            </p>
+            {incomplete && (
+              <p className="mt-1 text-[11px] opacity-90">Renseigne tes repas libres pour calculer le total</p>
+            )}
           </div>
           <div className="rounded-full bg-white/20 p-3">
             <TrendingUp className="size-6" />
