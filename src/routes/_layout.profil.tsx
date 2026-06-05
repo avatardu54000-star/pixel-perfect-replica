@@ -3,7 +3,7 @@ import { AppShell } from "@/components/app/AppShell";
 import { useApp } from "@/lib/store";
 import { calcTDEE, objectifProteines } from "@/lib/nutrition";
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ALIMENTS, ALIMENTS_MAP } from "@/data/aliments";
 import { Clock, Infinity as InfinityIcon, X } from "lucide-react";
 
@@ -29,6 +29,8 @@ function ProfilPage() {
   const protRecommande = protCible;
   const [kcalInput, setKcalInput] = useState(profil.objectif_calories_jour.toString());
   const [protInput, setProtInput] = useState(profil.objectif_proteines_g.toString());
+  useEffect(() => { setKcalInput(profil.objectif_calories_jour.toString()); }, [profil.objectif_calories_jour]);
+  useEffect(() => { setProtInput(profil.objectif_proteines_g.toString()); }, [profil.objectif_proteines_g]);
 
   const removeBan = (kind: "temporaire" | "definitif", id: string) => {
     const key = kind === "temporaire" ? "bannis_temporaire" : "bannis_definitif";
