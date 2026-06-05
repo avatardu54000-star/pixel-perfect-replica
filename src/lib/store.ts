@@ -73,10 +73,15 @@ export const useApp = create<State>()(
         checkInDone: false,
         setProfil: (p) => {
           const merged = { ...get().profil, ...p } as Profil;
-          const tdee = calcTDEE(merged);
-          const offset = merged.objectif === "seche_musculaire" ? -300 : merged.objectif === "prise_masse" ? 300 : 0;
-          merged.objectif_calories_jour = tdee + offset;
-          merged.objectif_proteines_g = objectifProteines(merged);
+          // Recompute recommended values only when the user did not explicitly override them in this call.
+          if (p.objectif_calories_jour === undefined) {
+            const tdee = calcTDEE(merged);
+            const offset = merged.objectif === "seche_musculaire" ? -500 : merged.objectif === "prise_masse" ? 300 : 0;
+            merged.objectif_calories_jour = tdee + offset;
+          }
+          if (p.objectif_proteines_g === undefined) {
+            merged.objectif_proteines_g = objectifProteines(merged);
+          }
           set({ profil: merged });
         },
         setPreferences: (p) => set({ preferences: { ...get().preferences, ...p } }),
