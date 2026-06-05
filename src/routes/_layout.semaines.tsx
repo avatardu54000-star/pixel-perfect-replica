@@ -1,13 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/app/AppShell";
 import { useApp } from "@/lib/store";
-import { batchSummary, JOURS_LABELS, macrosJour, prixSemaine, REPAS_LABELS } from "@/lib/nutrition";
+import { batchSummary, isRepasLibre, JOURS_LABELS, macrosJourSafe, prixSemaine, REPAS_LABELS } from "@/lib/nutrition";
 import { RECETTES } from "@/data/recettes";
 import { getRecette } from "@/lib/recipeLookup";
 import { useEffect, useState } from "react";
 import { ChefHat, CheckCircle2, Clock, MessageCircle, Package, Plus, Sparkles, X, Wand2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type { BatchConfig, RepasPlanifie } from "@/lib/types";
+import type { MacrosBase } from "@/lib/types";
 import { RepasDetailSheet } from "@/components/app/RepasDetailSheet";
 import { RepasEditSheet } from "@/components/app/RepasEditSheet";
 
@@ -27,6 +28,7 @@ function SemainesPage() {
   const ajouterBatch = useApp((s) => s.ajouterSemaineBatch);
   const profil = useApp((s) => s.profil);
   const changerRepas = useApp((s) => s.changerRepas);
+  const setRepasLibre = useApp((s) => s.setRepasLibre);
   const checkInDone = useApp((s) => s.checkInDone);
   const semaine = semaines.find((s) => s.id === activeId) ?? semaines[0];
 
@@ -35,6 +37,7 @@ function SemainesPage() {
   const [editIng, setEditIng] = useState<{ jourIdx: number; repas: RepasPlanifie } | null>(null);
   const [batchOpen, setBatchOpen] = useState(false);
   const [confirmMsg, setConfirmMsg] = useState<string | null>(null);
+  const [libreLog, setLibreLog] = useState<{ jourIdx: number; type: RepasPlanifie["type"] } | null>(null);
 
   useEffect(() => {
     if (search.wizard === 1 && checkInDone) {
@@ -109,48 +112,116 @@ function SemainesPage() {
 
       <div className="space-y-3">
         {semaine.jours.map((jour, jourIdx) => {
-          const m = macrosJour(jour);
+          const m = macrosJourSafe(jour, jourIdx, semaine);
           const kcalMax = profil.objectif_calories_jour; // 2100
           const protMin = profil.objectif_proteines_g; // 170
-          const kcalOver = m.kcal > kcalMax;
-          const protUnder = m.proteines < protMin;
-          const quotaKo = kcalOver || protUnder;
+          const incomplete = m === null;
+          const kcalOver = !incomplete && m.kcal > kcalMax;
+          const protUnder = !incomplete && m.proteines < protMin;
+          const quotaKo = !incomplete && (kcalOver || protUnder);
           return (
             <div key={jour.date} className="rounded-2xl bg-card p-4 shadow-[var(--shadow-soft)]">
               <div className="mb-3 flex items-center justify-between">
                 <h3 className="font-semibold">{JOURS_LABELS[jourIdx]} {jour.date.slice(8, 10)}/{jour.date.slice(5, 7)}</h3>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums ${
-                    quotaKo ? "bg-destructive/15 text-destructive" : "bg-success/15 text-success"
-                  }`}
-                  title={`Max ${kcalMax} kcal · Min ${protMin}g protéines`}
-                >
-                  <span className={kcalOver ? "font-bold" : ""}>{Math.round(m.kcal)}</span>
-                  /{kcalMax} kcal ·{" "}
-                  <span className={protUnder ? "font-bold" : ""}>{Math.round(m.proteines)}</span>
-                  /{protMin}P
-                </span>
+                {incomplete ? (
+                  <span
+                    className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground"
+                    title="Renseigne tous les repas libres pour calculer le total"
+                  >
+                    — kcal · — P
+                  </span>
+                ) : (
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums ${
+                      quotaKo ? "bg-destructive/15 text-destructive" : "bg-success/15 text-success"
+                    }`}
+                    title={`Max ${kcalMax} kcal · Min ${protMin}g protéines`}
+                  >
+                    <span className={kcalOver ? "font-bold" : ""}>{Math.round(m!.kcal)}</span>
+                    /{kcalMax} kcal ·{" "}
+                    <span className={protUnder ? "font-bold" : ""}>{Math.round(m!.proteines)}</span>
+                    /{protMin}P
+                  </span>
+                )}
               </div>
-              {quotaKo && (
+              {incomplete && (
+                <p className="mb-2 text-[11px] font-medium text-muted-foreground">
+                  ⏳ Total masqué — renseigne chaque repas libre ci-dessous
+                </p>
+              )}
+              {quotaKo && !incomplete && (
                 <p className="mb-2 text-[11px] font-medium text-destructive">
                   ⚠ Quota non respecté :
-                  {kcalOver && ` +${Math.round(m.kcal - kcalMax)} kcal au-dessus du max`}
+                  {kcalOver && ` +${Math.round(m!.kcal - kcalMax)} kcal au-dessus du max`}
                   {kcalOver && protUnder && " · "}
-                  {protUnder && `${Math.round(protMin - m.proteines)}g de protéines manquantes`}
+                  {protUnder && `${Math.round(protMin - m!.proteines)}g de protéines manquantes`}
                 </p>
               )}
               <div className="grid grid-cols-2 gap-2">
                 {jour.repas.map((r) => {
                   const recette = getRecette(r.recette_id);
+                  const libre = isRepasLibre(r, jourIdx, semaine);
                   const slot =
                     semaine.batch_config && (r.type === "dejeuner" || r.type === "diner")
                       ? semaine.batch_config.assignments[r.type === "dejeuner" ? "dejeuner" : "diner"][jourIdx]
                       : null;
-                  const isLibre =
-                    !!semaine.batch_config &&
-                    (r.type === "dejeuner" || r.type === "diner") &&
-                    (slot === null || slot === undefined);
+                  const isLibre = libre;
                   if (isLibre) {
+                    const st = r.libre_statut ?? "vide";
+                    if (st === "pas_de_repas") {
+                      return (
+                        <button
+                          key={r.type}
+                          onClick={() => setRepasLibre(semaine.id, jourIdx, r.type, { statut: "vide" })}
+                          className="rounded-xl border border-border bg-muted/30 p-2.5 text-left opacity-60 transition hover:opacity-90"
+                        >
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/70">{REPAS_LABELS[r.type]}</p>
+                          <p className="mt-0.5 text-xs font-medium text-muted-foreground line-through">Pas de repas</p>
+                          <p className="mt-0.5 text-[10px] text-muted-foreground/70">0 kcal · tap pour annuler</p>
+                        </button>
+                      );
+                    }
+                    if (st === "log" && r.libre_macros) {
+                      return (
+                        <button
+                          key={r.type}
+                          onClick={() => setLibreLog({ jourIdx, type: r.type })}
+                          className="rounded-xl border border-warning/40 bg-warning/10 p-2.5 text-left transition hover:bg-warning/15"
+                        >
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-warning">{REPAS_LABELS[r.type]} · logué</p>
+                          <p className="mt-0.5 text-xs font-medium">📝 {Math.round(r.libre_macros.kcal)} kcal · {Math.round(r.libre_macros.proteines)}g P</p>
+                          <p className="mt-0.5 text-[10px] text-muted-foreground">tap pour modifier</p>
+                        </button>
+                      );
+                    }
+                    return (
+                      <div
+                        key={r.type}
+                        className="rounded-xl border border-dashed border-border bg-muted/40 p-2.5 text-left"
+                      >
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/70">
+                          {REPAS_LABELS[r.type]}
+                        </p>
+                        <p className="mt-0.5 text-xs font-medium text-muted-foreground">Repas libre 🌿</p>
+                        <div className="mt-2 flex flex-col gap-1">
+                          <button
+                            onClick={() => setLibreLog({ jourIdx, type: r.type })}
+                            className="rounded-md bg-primary/15 px-2 py-1 text-[10px] font-semibold text-primary hover:bg-primary/25"
+                          >
+                            + Ajouter ce que j'ai mangé
+                          </button>
+                          <button
+                            onClick={() => setRepasLibre(semaine.id, jourIdx, r.type, { statut: "pas_de_repas" })}
+                            className="rounded-md bg-muted px-2 py-1 text-[10px] font-semibold text-muted-foreground hover:bg-muted/70"
+                          >
+                            ✕ Pas de repas
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  }
+                  // fallback (kept for safety, was unreachable above)
+                  if (false) {
                     return (
                       <div
                         key={r.type}
@@ -185,6 +256,29 @@ function SemainesPage() {
           );
         })}
       </div>
+
+      {libreLog && (() => {
+        const jour = semaine.jours[libreLog.jourIdx];
+        const repas = jour.repas.find((r) => r.type === libreLog.type);
+        const initial = repas?.libre_macros;
+        return (
+          <LibreLogSheet
+            initial={initial}
+            label={`${JOURS_LABELS[libreLog.jourIdx]} · ${REPAS_LABELS[libreLog.type]}`}
+            onClose={() => setLibreLog(null)}
+            onClear={() => {
+              setRepasLibre(semaine.id, libreLog.jourIdx, libreLog.type, { statut: "vide" });
+              setLibreLog(null);
+            }}
+            onSubmit={(macros) => {
+              setRepasLibre(semaine.id, libreLog.jourIdx, libreLog.type, { statut: "log", macros });
+              setLibreLog(null);
+              setConfirmMsg("Repas enregistré ✏️");
+              setTimeout(() => setConfirmMsg(null), 2500);
+            }}
+          />
+        );
+      })()}
 
       {detail && (
         <RepasDetailSheet
@@ -466,6 +560,81 @@ function Cell({ value, onClick }: { value: number | null; onClick: () => void })
     >
       {letter || "·"}
     </button>
+  );
+}
+
+function LibreLogSheet({
+  initial,
+  label,
+  onClose,
+  onClear,
+  onSubmit,
+}: {
+  initial?: MacrosBase;
+  label: string;
+  onClose: () => void;
+  onClear: () => void;
+  onSubmit: (m: MacrosBase) => void;
+}) {
+  const [kcal, setKcal] = useState(initial?.kcal?.toString() ?? "");
+  const [prot, setProt] = useState(initial?.proteines?.toString() ?? "");
+  const [glu, setGlu] = useState(initial?.glucides?.toString() ?? "");
+  const [lip, setLip] = useState(initial?.lipides?.toString() ?? "");
+  const valid = parseFloat(kcal) >= 0 && parseFloat(prot) >= 0;
+  const submit = () => {
+    onSubmit({
+      kcal: parseFloat(kcal) || 0,
+      proteines: parseFloat(prot) || 0,
+      glucides: parseFloat(glu) || 0,
+      lipides: parseFloat(lip) || 0,
+    });
+  };
+  return (
+    <div className="fixed inset-0 z-50 flex items-end bg-black/50" onClick={onClose}>
+      <div className="w-full rounded-t-3xl bg-card p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <h3 className="font-display text-xl">Ajouter ce que j'ai mangé</h3>
+            <p className="text-xs text-muted-foreground">{label} · saisis tes macros approximatives</p>
+          </div>
+          <button onClick={onClose} aria-label="Fermer"><X className="size-5" /></button>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <NumInput label="kcal" value={kcal} onChange={setKcal} />
+          <NumInput label="Protéines (g)" value={prot} onChange={setProt} />
+          <NumInput label="Glucides (g)" value={glu} onChange={setGlu} />
+          <NumInput label="Lipides (g)" value={lip} onChange={setLip} />
+        </div>
+        <button
+          disabled={!valid}
+          onClick={submit}
+          className="mt-4 w-full rounded-2xl bg-primary py-3 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-warm)] disabled:opacity-50"
+        >
+          Enregistrer
+        </button>
+        {initial && (
+          <button onClick={onClear} className="mt-2 w-full rounded-2xl py-2 text-xs font-medium text-muted-foreground hover:text-destructive">
+            Effacer ce log
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function NumInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <label className="block">
+      <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <input
+        type="number"
+        inputMode="numeric"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+        placeholder="0"
+      />
+    </label>
   );
 }
 

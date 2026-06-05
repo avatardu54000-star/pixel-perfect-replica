@@ -50,6 +50,14 @@ export interface RepasPlanifie {
   portions: number;
   /** Ingredients override (uniquement pour cette occurrence dans la semaine). */
   custom_ingredients?: IngredientRecette[];
+  /**
+   * Statut spécifique aux slots "Repas libre" (issus du batch cooking).
+   * - undefined / "vide" : non renseigné → bloque le total journalier
+   * - "pas_de_repas" : compté comme 0 kcal
+   * - "log" : macros saisies manuellement via libre_macros
+   */
+  libre_statut?: "vide" | "pas_de_repas" | "log";
+  libre_macros?: MacrosBase;
 }
 
 export interface JourPlanifie {
