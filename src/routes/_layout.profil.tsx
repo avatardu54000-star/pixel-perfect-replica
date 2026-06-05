@@ -24,6 +24,11 @@ function ProfilPage() {
   const tdee = calcTDEE(profil);
   const protCible = objectifProteines(profil);
   const perdu = (profil.poids_initial_kg - profil.poids_kg).toFixed(1);
+  const kcalRecommande =
+    tdee + (profil.objectif === "seche_musculaire" ? -500 : profil.objectif === "prise_masse" ? 300 : 0);
+  const protRecommande = protCible;
+  const [kcalInput, setKcalInput] = useState(profil.objectif_calories_jour.toString());
+  const [protInput, setProtInput] = useState(profil.objectif_proteines_g.toString());
 
   const removeBan = (kind: "temporaire" | "definitif", id: string) => {
     const key = kind === "temporaire" ? "bannis_temporaire" : "bannis_definitif";
@@ -154,6 +159,67 @@ function ProfilPage() {
               {obj === "seche_musculaire" ? "Sèche" : obj === "maintien" ? "Maintien" : "Prise"}
             </button>
           ))}
+        </div>
+      </section>
+
+      <section className="mb-5 rounded-2xl bg-card p-4 shadow-[var(--shadow-soft)]">
+        <h3 className="mb-1 text-sm font-bold uppercase tracking-wider text-muted-foreground">Mes objectifs personnalisés</h3>
+        <p className="mb-4 text-xs text-muted-foreground">
+          Ces valeurs sont utilisées partout dans l'app (planning, alertes, barres de progression).
+        </p>
+
+        <div className="mb-4">
+          <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Mon objectif calorique journalier
+          </p>
+          <p className="mb-2 text-xs text-muted-foreground">Recommandé&nbsp;: {kcalRecommande} kcal</p>
+          <div className="flex items-center gap-2 rounded-lg border-2 border-warning bg-warning/10 px-3 py-2">
+            <input
+              type="number"
+              value={kcalInput}
+              onChange={(e) => setKcalInput(e.target.value)}
+              onBlur={() => {
+                const n = parseInt(kcalInput, 10);
+                if (!Number.isNaN(n) && n > 0) setProfil({ objectif_calories_jour: n });
+                else setKcalInput(profil.objectif_calories_jour.toString());
+              }}
+              className="w-full bg-transparent text-base font-semibold text-warning outline-none"
+            />
+            <span className="text-xs font-medium text-warning">kcal</span>
+            <button
+              onClick={() => { setProfil({ objectif_calories_jour: kcalRecommande }); setKcalInput(kcalRecommande.toString()); }}
+              className="rounded-md bg-warning/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-warning"
+            >
+              Reset
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Mon objectif protéines
+          </p>
+          <p className="mb-2 text-xs text-muted-foreground">Recommandé&nbsp;: {protRecommande} g</p>
+          <div className="flex items-center gap-2 rounded-lg border-2 border-warning bg-warning/10 px-3 py-2">
+            <input
+              type="number"
+              value={protInput}
+              onChange={(e) => setProtInput(e.target.value)}
+              onBlur={() => {
+                const n = parseInt(protInput, 10);
+                if (!Number.isNaN(n) && n > 0) setProfil({ objectif_proteines_g: n });
+                else setProtInput(profil.objectif_proteines_g.toString());
+              }}
+              className="w-full bg-transparent text-base font-semibold text-warning outline-none"
+            />
+            <span className="text-xs font-medium text-warning">g</span>
+            <button
+              onClick={() => { setProfil({ objectif_proteines_g: protRecommande }); setProtInput(protRecommande.toString()); }}
+              className="rounded-md bg-warning/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-warning"
+            >
+              Reset
+            </button>
+          </div>
         </div>
       </section>
 
