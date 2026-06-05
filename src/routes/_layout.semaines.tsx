@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { ChefHat, CheckCircle2, Clock, MessageCircle, Package, Plus, Sparkles, X, Wand2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type { BatchConfig, RepasPlanifie } from "@/lib/types";
+import type { MacrosBase } from "@/lib/types";
 import { RepasDetailSheet } from "@/components/app/RepasDetailSheet";
 import { RepasEditSheet } from "@/components/app/RepasEditSheet";
 
