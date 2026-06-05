@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Aliment, BatchConfig, IngredientRecette, PoidsEntry, Preferences, Profil, Recette, Semaine } from "./types";
+import type { MacrosBase } from "./types";
 import { calcTDEE, equilibrerSemaine, genererSemaineBatch, genererSemaineDefaut, objectifProteines, startOfWeek } from "./nutrition";
 import { setCustomRecettes } from "./recipeLookup";
 import { setCustomAliments } from "./alimentLookup";
@@ -46,6 +47,7 @@ interface State {
   changerRepas: (semaineId: string, jourIndex: number, type: string, recetteId: string) => void;
   modifierIngredientsRepas: (semaineId: string, jourIndex: number, type: string, ingredients: IngredientRecette[] | undefined) => void;
   changerRecetteEtIngredients: (semaineId: string, jourIndex: number, type: string, recetteId: string, ingredients: IngredientRecette[] | undefined) => void;
+  setRepasLibre: (semaineId: string, jourIndex: number, type: string, payload: { statut: "vide" | "pas_de_repas" | "log"; macros?: MacrosBase }) => void;
   sauvegarderRecetteCustom: (recette: Recette) => void;
   ajouterAlimentCustom: (a: Aliment) => void;
   supprimerAlimentCustom: (id: string) => void;
@@ -139,6 +141,22 @@ export const useApp = create<State>()(
               if (i !== jourIndex) return j;
               const repas = j.repas.map((r) =>
                 r.type === type ? { ...r, recette_id: recetteId, custom_ingredients: ingredients } : r,
+              );
+              return { ...j, repas };
+            });
+            return { ...s, jours };
+          });
+          set({ semaines: sems });
+        },
+        setRepasLibre: (semaineId, jourIndex, type, payload) => {
+          const sems = get().semaines.map((s) => {
+            if (s.id !== semaineId) return s;
+            const jours = s.jours.map((j, i) => {
+              if (i !== jourIndex) return j;
+              const repas = j.repas.map((r) =>
+                r.type === type
+                  ? { ...r, libre_statut: payload.statut, libre_macros: payload.statut === "log" ? payload.macros : undefined }
+                  : r,
               );
               return { ...j, repas };
             });
