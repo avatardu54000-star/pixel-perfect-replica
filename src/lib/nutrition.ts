@@ -90,6 +90,39 @@ export function macrosJour(jour: JourPlanifie) {
   return macrosRepas(jour.repas);
 }
 
+/** Détermine si un repas est un slot "libre" (batch cooking sans recette assignée). */
+export function isRepasLibre(repas: RepasPlanifie, jourIdx: number, semaine: Semaine): boolean {
+  const cfg = semaine.batch_config;
+  if (!cfg) return false;
+  if (repas.type !== "dejeuner" && repas.type !== "diner") return false;
+  const slot = cfg.assignments[repas.type][jourIdx];
+  return slot === null || slot === undefined;
+}
+
+/** Macros effectives d'un repas en tenant compte du statut libre. Retourne null si "vide". */
+export function macrosRepasEffectif(repas: RepasPlanifie, libre: boolean): MacrosCalc | null {
+  if (libre) {
+    const st = repas.libre_statut ?? "vide";
+    if (st === "vide") return null;
+    if (st === "pas_de_repas") return EMPTY_MACROS;
+    const m = repas.libre_macros ?? { kcal: 0, proteines: 0, glucides: 0, lipides: 0 };
+    return { kcal: m.kcal, proteines: m.proteines, glucides: m.glucides, lipides: m.lipides, fibres: m.fibres ?? 0 };
+  }
+  return macrosRepasPlanifie(repas);
+}
+
+/** Totaux du jour ou null si au moins un repas libre est non renseigné. */
+export function macrosJourSafe(jour: JourPlanifie, jourIdx: number, semaine: Semaine): MacrosCalc | null {
+  let total = EMPTY_MACROS;
+  for (const r of jour.repas) {
+    const libre = isRepasLibre(r, jourIdx, semaine);
+    const m = macrosRepasEffectif(r, libre);
+    if (m === null) return null;
+    total = addMacros(total, m);
+  }
+  return total;
+}
+
 // ===== Équilibrage automatique pour respecter les quotas =====
 export const QUOTA_KCAL_MIN = 1950;
 export const QUOTA_KCAL_MAX = 2100;
