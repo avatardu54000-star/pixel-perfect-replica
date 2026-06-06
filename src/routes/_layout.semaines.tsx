@@ -29,6 +29,7 @@ function SemainesPage() {
   const profil = useApp((s) => s.profil);
   const changerRepas = useApp((s) => s.changerRepas);
   const setRepasLibre = useApp((s) => s.setRepasLibre);
+  const toggleNonPris = useApp((s) => s.toggleNonPris);
   const checkInDone = useApp((s) => s.checkInDone);
   const semaine = semaines.find((s) => s.id === activeId) ?? semaines[0];
 
