@@ -3,6 +3,7 @@ import { AppShell } from "@/components/app/AppShell";
 import { MacroRing } from "@/components/app/MacroRing";
 import { SavoirDuJourCard } from "@/components/app/SavoirDuJourCard";
 import { useApp, useSemaineActive } from "@/lib/store";
+import { Ban } from "lucide-react";
 import { JOURS_LABELS, macrosJourSafe, REPAS_LABELS } from "@/lib/nutrition";
 import { getRecette } from "@/lib/recipeLookup";
 import { TrendingUp } from "lucide-react";
