@@ -24,6 +24,7 @@ function greeting() {
 
 function Dashboard() {
   const profil = useApp((s) => s.profil);
+  const toggleNonPris = useApp((s) => s.toggleNonPris);
   const semaine = useSemaineActive();
   const todayISO = new Date().toISOString().slice(0, 10);
   const idxByDate = semaine.jours.findIndex((j) => j.date.slice(0, 10) === todayISO);
