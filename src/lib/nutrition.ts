@@ -196,6 +196,7 @@ export function prixSemaine(semaine: Semaine): number {
   let total = 0;
   for (const j of semaine.jours) {
     for (const r of j.repas) {
+      if (r.non_pris) continue;
       for (const ing of resolveIngredients(r)) {
         const a = ALIMENTS_MAP[ing.aliment_id];
         if (!a) continue;
