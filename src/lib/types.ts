@@ -58,6 +58,8 @@ export interface RepasPlanifie {
    */
   libre_statut?: "vide" | "pas_de_repas" | "log";
   libre_macros?: MacrosBase;
+  /** Repas explicitement marqué comme non consommé ce jour (0 kcal). */
+  non_pris?: boolean;
 }
 
 export interface JourPlanifie {
