@@ -73,6 +73,7 @@ export function resolveIngredients(r: RepasPlanifie): IngredientRecette[] {
 }
 
 export function macrosRepasPlanifie(r: RepasPlanifie): MacrosCalc {
+  if (r.non_pris) return EMPTY_MACROS;
   let total = EMPTY_MACROS;
   for (const ing of resolveIngredients(r)) {
     const a = ALIMENTS_MAP[ing.aliment_id];
