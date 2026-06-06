@@ -48,6 +48,7 @@ interface State {
   modifierIngredientsRepas: (semaineId: string, jourIndex: number, type: string, ingredients: IngredientRecette[] | undefined) => void;
   changerRecetteEtIngredients: (semaineId: string, jourIndex: number, type: string, recetteId: string, ingredients: IngredientRecette[] | undefined) => void;
   setRepasLibre: (semaineId: string, jourIndex: number, type: string, payload: { statut: "vide" | "pas_de_repas" | "log"; macros?: MacrosBase }) => void;
+  toggleNonPris: (semaineId: string, jourIndex: number, type: string) => void;
   sauvegarderRecetteCustom: (recette: Recette) => void;
   ajouterAlimentCustom: (a: Aliment) => void;
   supprimerAlimentCustom: (id: string) => void;
@@ -157,6 +158,20 @@ export const useApp = create<State>()(
                 r.type === type
                   ? { ...r, libre_statut: payload.statut, libre_macros: payload.statut === "log" ? payload.macros : undefined }
                   : r,
+              );
+              return { ...j, repas };
+            });
+            return { ...s, jours };
+          });
+          set({ semaines: sems });
+        },
+        toggleNonPris: (semaineId, jourIndex, type) => {
+          const sems = get().semaines.map((s) => {
+            if (s.id !== semaineId) return s;
+            const jours = s.jours.map((j, i) => {
+              if (i !== jourIndex) return j;
+              const repas = j.repas.map((r) =>
+                r.type === type ? { ...r, non_pris: !r.non_pris } : r,
               );
               return { ...j, repas };
             });

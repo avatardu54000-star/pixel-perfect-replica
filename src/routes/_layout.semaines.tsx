@@ -5,7 +5,7 @@ import { batchSummary, isRepasLibre, JOURS_LABELS, macrosJourSafe, prixSemaine, 
 import { RECETTES } from "@/data/recettes";
 import { getRecette } from "@/lib/recipeLookup";
 import { useEffect, useState } from "react";
-import { ChefHat, CheckCircle2, Clock, MessageCircle, Package, Plus, Sparkles, X, Wand2 } from "lucide-react";
+import { Ban, ChefHat, CheckCircle2, Clock, MessageCircle, Package, Plus, Sparkles, X, Wand2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type { BatchConfig, RepasPlanifie } from "@/lib/types";
 import type { MacrosBase } from "@/lib/types";
@@ -29,6 +29,7 @@ function SemainesPage() {
   const profil = useApp((s) => s.profil);
   const changerRepas = useApp((s) => s.changerRepas);
   const setRepasLibre = useApp((s) => s.setRepasLibre);
+  const toggleNonPris = useApp((s) => s.toggleNonPris);
   const checkInDone = useApp((s) => s.checkInDone);
   const semaine = semaines.find((s) => s.id === activeId) ?? semaines[0];
 
@@ -237,18 +238,39 @@ function SemainesPage() {
                   const slotInfo = slot !== null && slot !== undefined ? semaine.batch_config?.recipes[slot] : null;
                   const slotColor = slot !== null && slot !== undefined ? RECIPE_COLORS[slot]?.dot : null;
                   const displayName = slotInfo?.name?.trim() || recette?.nom;
+                  if (r.non_pris) {
+                    return (
+                      <button
+                        key={r.type}
+                        onClick={() => toggleNonPris(semaine.id, jourIdx, r.type)}
+                        className="rounded-xl border border-border bg-muted/30 p-2.5 text-left opacity-60 transition hover:opacity-90"
+                      >
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/70">{REPAS_LABELS[r.type]}</p>
+                        <p className="mt-0.5 text-xs font-medium text-muted-foreground line-through">Non pris 🚫</p>
+                        <p className="mt-0.5 text-[10px] text-muted-foreground/70">0 kcal · tap pour annuler</p>
+                      </button>
+                    );
+                  }
                   return (
-                    <button
+                    <div
                       key={r.type}
                       onClick={() => setDetail({ jourIdx, repas: r })}
-                      className="relative rounded-xl bg-muted p-2.5 text-left transition hover:bg-muted/70"
+                      className="relative cursor-pointer rounded-xl bg-muted p-2.5 text-left transition hover:bg-muted/70"
                     >
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); toggleNonPris(semaine.id, jourIdx, r.type); }}
+                        className="absolute right-1 top-1 rounded-full p-1 text-[10px] text-muted-foreground/50 transition hover:bg-muted-foreground/10 hover:text-destructive"
+                        title="Non pris ce jour"
+                      >
+                        <Ban className="size-3" />
+                      </button>
                       <div className="flex items-center gap-1.5">
                         {slotColor && <span className={`inline-block size-1.5 rounded-full ${slotColor}`} />}
                         <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{REPAS_LABELS[r.type]}</p>
                       </div>
                       <p className="mt-0.5 line-clamp-2 text-xs font-medium">{recette?.emoji} {displayName}</p>
-                    </button>
+                    </div>
                   );
                 })}
               </div>

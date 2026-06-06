@@ -3,9 +3,9 @@ import { AppShell } from "@/components/app/AppShell";
 import { MacroRing } from "@/components/app/MacroRing";
 import { SavoirDuJourCard } from "@/components/app/SavoirDuJourCard";
 import { useApp, useSemaineActive } from "@/lib/store";
+import { Ban, TrendingUp } from "lucide-react";
 import { JOURS_LABELS, macrosJourSafe, REPAS_LABELS } from "@/lib/nutrition";
 import { getRecette } from "@/lib/recipeLookup";
-import { TrendingUp } from "lucide-react";
 import { useState } from "react";
 import { RepasDetailSheet } from "@/components/app/RepasDetailSheet";
 import type { RepasPlanifie } from "@/lib/types";
@@ -23,6 +23,7 @@ function greeting() {
 
 function Dashboard() {
   const profil = useApp((s) => s.profil);
+  const toggleNonPris = useApp((s) => s.toggleNonPris);
   const semaine = useSemaineActive();
   const todayISO = new Date().toISOString().slice(0, 10);
   const idxByDate = semaine.jours.findIndex((j) => j.date.slice(0, 10) === todayISO);
@@ -78,6 +79,22 @@ function Dashboard() {
               !!semaine.batch_config &&
               (r.type === "dejeuner" || r.type === "diner") &&
               (slot === null || slot === undefined);
+            if (r.non_pris) {
+              return (
+                <button
+                  key={r.type}
+                  onClick={() => toggleNonPris(semaine.id, todayIdx, r.type)}
+                  className="flex w-full items-center gap-3 rounded-2xl border border-border bg-muted/30 p-4 text-left opacity-60 transition hover:opacity-90"
+                >
+                  <div className="grid size-12 place-items-center rounded-xl bg-background text-2xl">🚫</div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{REPAS_LABELS[r.type]}</p>
+                    <p className="truncate font-semibold text-muted-foreground line-through">Non pris 🚫</p>
+                    <p className="text-xs text-muted-foreground/70">0 kcal · tap pour annuler</p>
+                  </div>
+                </button>
+              );
+            }
             if (isLibre) {
               return (
                 <div
