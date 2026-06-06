@@ -217,6 +217,7 @@ export function listeCourses(semaine: Semaine): ListeCoursesItem[] {
   const map = new Map<string, ListeCoursesItem>();
   for (const j of semaine.jours) {
     for (const r of j.repas) {
+      if (r.non_pris) continue;
       for (const ing of resolveIngredients(r)) {
         const a = ALIMENTS_MAP[ing.aliment_id];
         if (!a) continue;
