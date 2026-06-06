@@ -48,6 +48,7 @@ interface State {
   modifierIngredientsRepas: (semaineId: string, jourIndex: number, type: string, ingredients: IngredientRecette[] | undefined) => void;
   changerRecetteEtIngredients: (semaineId: string, jourIndex: number, type: string, recetteId: string, ingredients: IngredientRecette[] | undefined) => void;
   setRepasLibre: (semaineId: string, jourIndex: number, type: string, payload: { statut: "vide" | "pas_de_repas" | "log"; macros?: MacrosBase }) => void;
+  toggleNonPris: (semaineId: string, jourIndex: number, type: string) => void;
   sauvegarderRecetteCustom: (recette: Recette) => void;
   ajouterAlimentCustom: (a: Aliment) => void;
   supprimerAlimentCustom: (id: string) => void;
