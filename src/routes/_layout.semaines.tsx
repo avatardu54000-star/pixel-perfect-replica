@@ -5,7 +5,7 @@ import { batchSummary, isRepasLibre, JOURS_LABELS, macrosJourSafe, prixSemaine, 
 import { RECETTES } from "@/data/recettes";
 import { getRecette } from "@/lib/recipeLookup";
 import { useEffect, useState } from "react";
-import { ChefHat, CheckCircle2, Clock, MessageCircle, Package, Plus, Sparkles, X, Wand2 } from "lucide-react";
+import { Ban, ChefHat, CheckCircle2, Clock, MessageCircle, Package, Plus, Sparkles, X, Wand2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type { BatchConfig, RepasPlanifie } from "@/lib/types";
 import type { MacrosBase } from "@/lib/types";
