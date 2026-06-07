@@ -2,7 +2,6 @@ import { useState } from "react";
 import { ArrowLeft, ChevronRight, Plus, Save, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { CATEGORIES } from "@/routes/_layout.aliments";
-import { ALIMENTS_MAP } from "@/data/aliments";
 import { useApp } from "@/lib/store";
 import type { Aliment, Recette } from "@/lib/types";
 
