@@ -28,6 +28,7 @@ const PREFS_DEFAUT: Preferences = {
   bannis_definitif: ["patate_douce"],
   cuisines_preferees: ["italienne", "asiatique", "méditerranéenne"],
   budget_mensuel: 325,
+  equipement: ["four", "airfryer", "cocotte_minute", "cocotte_fonte", "poele_inox"],
 };
 
 interface State {
