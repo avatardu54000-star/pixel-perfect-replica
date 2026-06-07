@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_layout/aliments")({
 
 type Tab = "base" | "mine" | "add";
 
-const CATEGORIES: { id: CategorieAliment; label: string; emoji: string }[] = [
+export const CATEGORIES: { id: CategorieAliment; label: string; emoji: string }[] = [
   { id: "viande", label: "Viandes", emoji: "🥩" },
   { id: "poisson", label: "Poissons", emoji: "🐟" },
   { id: "laitier", label: "Laitiers", emoji: "🥛" },
