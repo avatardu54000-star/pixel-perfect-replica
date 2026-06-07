@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
-import { Apple, Camera, Loader2, Plus, Search, Sparkles, Trash2, Wand2, X } from "lucide-react";
+import { Apple, Camera, ChevronRight, Loader2, Plus, Search, Sparkles, Trash2, Wand2, X } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { lookupAliment, type AiAlimentResult } from "@/lib/alimentAi.functions";
 import { scanNutritionLabel } from "@/lib/alimentScan.functions";
+import { AlimentDetailSheet } from "@/components/app/AlimentDetailSheet";
 import { AppShell } from "@/components/app/AppShell";
 import { ALIMENTS } from "@/data/aliments";
 import { useApp } from "@/lib/store";
