@@ -58,6 +58,7 @@ export function AlimentDetailSheet({ aliment, onClose }: Props) {
       nb_portions_base: 1,
       ingredients: [{ aliment_id: aliment.id, quantite_g_par_portion: 100 }],
       etapes: ["Préparer les ingrédients."],
+      pourquoi: "Recette personnalisée créée à partir d'un aliment.",
       conservation_jours: 2,
       tags: ["custom"],
     };
