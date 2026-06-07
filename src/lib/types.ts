@@ -109,6 +109,17 @@ export interface Preferences {
   bannis_definitif: string[];
   cuisines_preferees: string[];
   budget_mensuel: number;
+  equipement?: EquipementCuisine[];
 }
+
+export type EquipementCuisine =
+  | "four"
+  | "airfryer"
+  | "cocotte_minute"
+  | "cocotte_fonte"
+  | "poele_inox"
+  | "casserole"
+  | "wok"
+  | "plancha";
 
 export interface PoidsEntry { date: string; poids: number; }

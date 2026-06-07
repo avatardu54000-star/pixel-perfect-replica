@@ -6,6 +6,18 @@ import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip } from "rec
 import { useEffect, useState } from "react";
 import { ALIMENTS, ALIMENTS_MAP } from "@/data/aliments";
 import { Clock, Infinity as InfinityIcon, X } from "lucide-react";
+import type { EquipementCuisine } from "@/lib/types";
+
+const EQUIPEMENTS: { id: EquipementCuisine; label: string; emoji: string }[] = [
+  { id: "four", label: "Four", emoji: "🔥" },
+  { id: "airfryer", label: "Airfryer", emoji: "💨" },
+  { id: "cocotte_minute", label: "Cocotte minute", emoji: "⏱️" },
+  { id: "cocotte_fonte", label: "Cocotte en fonte", emoji: "🥘" },
+  { id: "poele_inox", label: "Poêle inox", emoji: "🍳" },
+  { id: "casserole", label: "Casserole", emoji: "🍲" },
+  { id: "wok", label: "Wok", emoji: "🥢" },
+  { id: "plancha", label: "Plancha", emoji: "🔲" },
+];
 
 export const Route = createFileRoute("/_layout/profil")({
   component: ProfilPage,
@@ -247,6 +259,42 @@ function ProfilPage() {
           onRemove={(id) => removeBan("definitif", id)}
           onAdd={() => setExclusionPicker("definitif")}
         />
+      </section>
+
+      <section className="mb-5 rounded-2xl bg-card p-4 shadow-[var(--shadow-soft)]">
+        <h3 className="mb-1 text-sm font-bold uppercase tracking-wider text-muted-foreground">Mon équipement cuisine</h3>
+        <p className="mb-3 text-xs text-muted-foreground">L'IA utilise uniquement l'équipement coché pour générer les recettes.</p>
+        <div className="grid grid-cols-2 gap-2">
+          {EQUIPEMENTS.map((eq) => {
+            const checked = (preferences.equipement ?? []).includes(eq.id);
+            return (
+              <button
+                key={eq.id}
+                onClick={() => {
+                  const current = preferences.equipement ?? [];
+                  const next = checked ? current.filter((x) => x !== eq.id) : [...current, eq.id];
+                  setPreferences({ equipement: next });
+                }}
+                className={`flex items-center gap-2 rounded-xl border-2 px-3 py-2.5 text-left text-sm transition ${
+                  checked
+                    ? "border-primary bg-primary/10 text-foreground"
+                    : "border-border bg-muted/30 text-muted-foreground"
+                }`}
+              >
+                <span
+                  className={`grid size-4 shrink-0 place-content-center rounded border-2 ${
+                    checked ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background"
+                  }`}
+                  aria-hidden
+                >
+                  {checked && <span className="text-[10px] leading-none">✓</span>}
+                </span>
+                <span className="text-base">{eq.emoji}</span>
+                <span className="truncate font-medium">{eq.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </section>
 
       {exclusionPicker && (
