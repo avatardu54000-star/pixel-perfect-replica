@@ -213,28 +213,41 @@ function MineTab() {
 }
 
 function AlimentRow({ a, onDelete }: { a: Aliment; onDelete?: () => void }) {
+  const [open, setOpen] = useState(false);
   const ratio = a.pour_100g.kcal > 0 ? (a.pour_100g.proteines / a.pour_100g.kcal) * 100 : 0;
   return (
-    <div className="flex items-center gap-3 rounded-2xl bg-card p-3 shadow-[var(--shadow-soft)]">
-      <div className="grid size-10 place-items-center rounded-xl bg-primary/10 text-lg">
-        {CATEGORIES.find((c) => c.id === a.categorie)?.emoji ?? "🍽️"}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold">{a.nom}{a.marque && <span className="ml-1 text-xs text-muted-foreground">· {a.marque}</span>}</p>
-        <p className="text-[10px] tabular-nums text-muted-foreground">
-          {Math.round(a.pour_100g.kcal)} kcal · P {a.pour_100g.proteines}g · G {a.pour_100g.glucides}g · L {a.pour_100g.lipides}g
-        </p>
-      </div>
-      <div className="text-right">
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">P/kcal</p>
-        <p className="font-display text-sm tabular-nums">{ratio.toFixed(1)}</p>
-      </div>
-      {onDelete && (
-        <button onClick={onDelete} className="grid size-8 place-items-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive" aria-label="Supprimer">
-          <Trash2 className="size-4" />
-        </button>
-      )}
-    </div>
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="flex w-full items-center gap-3 rounded-2xl bg-card p-3 shadow-[var(--shadow-soft)] text-left transition active:scale-[0.98]"
+      >
+        <div className="grid size-10 place-items-center rounded-xl bg-primary/10 text-lg">
+          {CATEGORIES.find((c) => c.id === a.categorie)?.emoji ?? "🍽️"}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold">{a.nom}{a.marque && <span className="ml-1 text-xs text-muted-foreground">· {a.marque}</span>}</p>
+          <p className="text-[10px] tabular-nums text-muted-foreground">
+            {Math.round(a.pour_100g.kcal)} kcal · P {a.pour_100g.proteines}g · G {a.pour_100g.glucides}g · L {a.pour_100g.lipides}g
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">P/kcal</p>
+          <p className="font-display text-sm tabular-nums">{ratio.toFixed(1)}</p>
+        </div>
+        {onDelete ? (
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            className="grid size-8 place-items-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+            aria-label="Supprimer"
+          >
+            <Trash2 className="size-4" />
+          </button>
+        ) : (
+          <ChevronRight className="size-4 text-muted-foreground shrink-0" />
+        )}
+      </button>
+      {open && <AlimentDetailSheet aliment={a} onClose={() => setOpen(false)} />}
+    </>
   );
 }
 
