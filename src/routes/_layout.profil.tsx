@@ -268,12 +268,12 @@ function ProfilPage() {
         <p className="mb-3 text-xs text-muted-foreground">L'IA utilise uniquement l'équipement coché pour générer les recettes.</p>
         <div className="grid grid-cols-2 gap-2">
           {EQUIPEMENTS.map((eq) => {
-            const checked = (preferences.equipement ?? []).includes(eq.id);
+            const checked = (preferences.equipement ?? EQUIPEMENT_DEFAUT).includes(eq.id);
             return (
               <button
                 key={eq.id}
                 onClick={() => {
-                  const current = preferences.equipement ?? [];
+                  const current = preferences.equipement ?? EQUIPEMENT_DEFAUT;
                   const next = checked ? current.filter((x) => x !== eq.id) : [...current, eq.id];
                   setPreferences({ equipement: next });
                 }}
