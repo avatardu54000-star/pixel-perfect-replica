@@ -76,11 +76,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "MyFuelApp — Coach nutrition personnalisé" },
       { name: "description", content: "Planification nutritionnelle hebdomadaire, bienveillante et scientifique." },
       { name: "theme-color", content: "#E8400C" },
-      { property: "og:title", content: "MyFuelApp" },
-      { property: "og:description", content: "Ton coach nutrition intelligent." },
+      { property: "og:title", content: "MyFuelApp — Coach nutrition personnalisé" },
+      { property: "og:description", content: "Planification nutritionnelle hebdomadaire, bienveillante et scientifique." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "MyFuelApp — Coach nutrition personnalisé" },
+      { name: "twitter:description", content: "Planification nutritionnelle hebdomadaire, bienveillante et scientifique." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/012c33de-5eae-40eb-83c0-a04976e8b49a/id-preview-479be4ed--3bfa86a0-76da-4779-88e3-789879fd8d1b.lovable.app-1783417102762.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/012c33de-5eae-40eb-83c0-a04976e8b49a/id-preview-479be4ed--3bfa86a0-76da-4779-88e3-789879fd8d1b.lovable.app-1783417102762.png" },
     ],
     links: [
       {
