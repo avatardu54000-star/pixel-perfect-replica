@@ -8,6 +8,8 @@ import { ALIMENTS, ALIMENTS_MAP } from "@/data/aliments";
 import { Clock, Infinity as InfinityIcon, X } from "lucide-react";
 import type { EquipementCuisine } from "@/lib/types";
 
+const EQUIPEMENT_DEFAUT: EquipementCuisine[] = ["four", "airfryer", "cocotte_minute", "cocotte_fonte", "poele_inox"];
+
 const EQUIPEMENTS: { id: EquipementCuisine; label: string; emoji: string }[] = [
   { id: "four", label: "Four", emoji: "🔥" },
   { id: "airfryer", label: "Airfryer", emoji: "💨" },
